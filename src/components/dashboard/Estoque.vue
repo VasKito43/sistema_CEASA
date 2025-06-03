@@ -17,7 +17,7 @@ const estoqueFiltradoOrdenado = computed(() =>
 
 const recebeEstoque = async () => {
   try {
-    const resposta = await fetch("https://backendvue.onrender.com/produtos")
+    const resposta = await fetch("http://127.0.0.1:3000/produtos")
     if (!resposta.ok) {
       throw new Error("Erro ao realizar busca")
     }
