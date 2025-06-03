@@ -22,7 +22,7 @@ const state = reactive({
     //funções
     recebeUsuarios:async () => {
     try{
-        const resposta = await fetch(""https://backendvue.onrender.com/usuarios");
+        const resposta = await fetch("https://backendvue.onrender.com/usuarios");
         if (!resposta.ok) {
             throw new Error("Erro ao realizar busca")
         }
@@ -34,7 +34,7 @@ const state = reactive({
 
     recebeEstoque: async () => {
     try{
-        const resposta = await fetch(""https://backendvue.onrender.com/estoque");
+        const resposta = await fetch("https://backendvue.onrender.com/estoque");
         if (!resposta.ok) {
             throw new Error("Erro ao realizar busca")
         }
@@ -107,7 +107,7 @@ const state = reactive({
     criarPedido: async () => {
 
         try {
-            const resposta = await fetch(""https://backendvue.onrender.com/pedidos", {
+            const resposta = await fetch("https://backendvue.onrender.com/pedidos", {
                 method: "POST",
                 headers:{
                     "Content-Type": "application/json"
@@ -140,7 +140,7 @@ const state = reactive({
             };
         
             try {
-                const resposta = await fetch(""https://backendvue.onrender.com/vendas", {
+                const resposta = await fetch("https://backendvue.onrender.com/vendas", {
                     method: "POST",
                     headers: {
                         "Content-Type": "application/json"
@@ -166,7 +166,7 @@ const state = reactive({
         }
         state.estatusRV = 'loading'
         try {
-            const resposta = await fetch(`"https://backendvue.onrender.com/pedidos/${state.pedidoId}`, {
+            const resposta = await fetch(`https://backendvue.onrender.com/pedidos/${state.pedidoId}`, {
                 method: "PUT",
                 headers: {
                     "Content-Type": "application/json",
@@ -190,7 +190,7 @@ const state = reactive({
         }
         for (let i = 0;  i < state.produtos.length; i++){
                 try{
-                    const resposta = await fetch(`"https://backendvue.onrender.com/vendas`,{
+                    const resposta = await fetch(`https://backendvue.onrender.com/vendas`,{
                         method: "PUT",
                         headers: {
                             "Content-Type": "application/json",
@@ -241,7 +241,7 @@ const state = reactive({
             pedidoId: state.pedidoId
         };
     try{
-        const resposta = await fetch(`"https://backendvue.onrender.com/vendas`, {
+        const resposta = await fetch(`https://backendvue.onrender.com/vendas`, {
             method: "DELETE",
             headers: {
                 "Content-Type": "application/json"
@@ -269,7 +269,7 @@ const state = reactive({
         }
           
         try{
-            const resposta = await fetch(`"https://backendvue.onrender.com/pedidos/${state.pedidoId}`, {
+            const resposta = await fetch(`https://backendvue.onrender.com/pedidos/${state.pedidoId}`, {
                 method: "DELETE"
             });
 

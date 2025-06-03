@@ -17,7 +17,7 @@ const estoqueFiltradoOrdenado = computed(() =>
 
 const recebeEstoque = async () => {
   try {
-    const resposta = await fetch(""https://backendvue.onrender.com/produtos")
+    const resposta = await fetch("https://backendvue.onrender.com/produtos")
     if (!resposta.ok) {
       throw new Error("Erro ao realizar busca")
     }
@@ -56,7 +56,7 @@ const atualizarProduto = async (produto) => {
     loading.value = true
 
     try {
-        const resposta = await fetch(`"https://backendvue.onrender.com/produtos/${produto.id}`, {
+        const resposta = await fetch(`https://backendvue.onrender.com/produtos/${produto.id}`, {
             method: "PUT",
             headers: {
                 "Content-Type": "application/json",
@@ -91,7 +91,7 @@ const deletarProduto = async (produto) => {
     loading.value = true
 
     try {
-        const resposta = await fetch(`"https://backendvue.onrender.com/produtos/${produto.id}`, {
+        const resposta = await fetch(`https://backendvue.onrender.com/produtos/${produto.id}`, {
             method: "DELETE"
         });
 

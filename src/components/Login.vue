@@ -27,7 +27,7 @@ const entrar = async () => {
     };
 
     try {
-        const resposta = await fetch(""https://backendvue.onrender.com/validaUsuario", {
+        const resposta = await fetch("https://backendvue.onrender.com/validaUsuario", {
             method: "POST",
             headers: {
                 "Content-Type": "application/json"

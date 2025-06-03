@@ -34,7 +34,7 @@ const stateEncaminhar = reactive({
 // Funções de recebimento de dados
 const recebePedidos = async () => {
     try {
-        const resposta = await fetch(""https://backendvue.onrender.com/pedidos");
+        const resposta = await fetch("https://backendvue.onrender.com/pedidos");
         if (!resposta.ok) throw new Error("Erro ao realizar busca");
         pedidos.value = await resposta.json();
         filtraPedidos();
@@ -47,7 +47,7 @@ const recebePedidos = async () => {
 
 const recebeClientes = async () => {
     try {
-        const resposta = await fetch(""https://backendvue.onrender.com/usuarios");
+        const resposta = await fetch("https://backendvue.onrender.com/usuarios");
         if (!resposta.ok) throw new Error("Erro ao realizar busca");
         clientes.value = await resposta.json();
     } catch (error) {
@@ -59,7 +59,7 @@ const recebeClientes = async () => {
 
 const recebeVendas = async () => {
     try {
-        const resposta = await fetch(""https://backendvue.onrender.com/vendas");
+        const resposta = await fetch("https://backendvue.onrender.com/vendas");
         if (!resposta.ok) throw new Error("Erro ao realizar busca");
         vendas.value = await resposta.json();
     } catch (error) {
@@ -71,7 +71,7 @@ const recebeVendas = async () => {
 
 const recebeEstoque = async () => {
     try {
-        const resposta = await fetch(""https://backendvue.onrender.com/estoque");
+        const resposta = await fetch("https://backendvue.onrender.com/estoque");
         if (!resposta.ok) throw new Error("Erro ao realizar busca");
         estoque.value = await resposta.json();
     } catch (error) {

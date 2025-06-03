@@ -14,7 +14,7 @@ const cadastrar = async () => {
     };
 
     try {
-        const resposta = await fetch(""https://backendvue.onrender.com/usuarios", {
+        const resposta = await fetch("https://backendvue.onrender.com/usuarios", {
             method: "POST",
             headers: {
                 "Content-Type": "application/json"
