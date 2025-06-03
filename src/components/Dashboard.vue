@@ -16,7 +16,9 @@ import { useStore, menuStore } from '../store';
 import CadastroFuncionario from './Funcionario/CadastroFuncionario.vue'
 import Funcionarios from './Funcionario/Funcionarios.vue'
 import Entrada from './entradas_e_saidas/Entrada.vue'
-
+import Saida from './entradas_e_saidas/Saida.vue'
+import RegistroEntradas from './registros/RegistroEntradas.vue'
+import RegistroSaidas from './registros/RegistroSaidas.vue'
 
 const router = useRouter();
 const conteudo = ref(null)
@@ -27,20 +29,18 @@ const menu = menuStore();
 
 const componentesEntradasSaidas = ref([
     { texto: "Entrada de Produto", componente: Entrada, ativado: false },
-    { texto: "Saída de Produto", componente: RealizarVenda, ativado: false },
+    { texto: "Saída de Produto", componente: Saida, ativado: false },
 ])
 
 const componentesEstoque = ref([
-    { texto: "Clientes", componente: PessoasBd, ativado: false },
-    { texto: "Cadastro de Clientes", componente: CadastroBd, ativado: false },
     { texto: "Produtos", componente: Estoque, ativado: false },
     { texto: "Cadastro de Produto", componente: CadastroProduto, ativado: false },
-    { texto: "Realizar Venda", componente: RealizarVenda, ativado: false },
-    { texto: "Buscar Pedido", componente: BuscaPedido, ativado: false }
 ])
 const componentesRegistro = ref([
-    { texto: "Registro de Alteração", componente: BuscaPedido, ativado: false},
-    { texto: "Registro de Excluidos", componente: Funcionarios, ativado: false}
+    { texto: "Registro de Entradas", componente: RegistroEntradas, ativado: false},
+    { texto: "Registro de Saidas", componente: RegistroSaidas, ativado: false},
+    // { texto: "Registro de Alteração", componente: BuscaPedido, ativado: false},
+    // { texto: "Registro de Excluidos", componente: Funcionarios, ativado: false}
 
 ])
 
@@ -153,7 +153,7 @@ const ativaConteudo = (opcaoSelecionada) => {
     width: 100%;
     height: 7vh;
     margin-top: 1vh;
-    background: linear-gradient(to bottom right, #3498db5d, #2ecc705b);
+    background: linear-gradient(to bottom right, #0a8fe75d, #0551f55b);
     font-size: 18pt;
     cursor: pointer;
     transition: background 0.3s;
@@ -164,7 +164,7 @@ const ativaConteudo = (opcaoSelecionada) => {
 }
 
 .botao:hover {
-    background: linear-gradient(to bottom right, #3498db, #2ecc71);
+    background: linear-gradient(to bottom right, #3498db, #00d4f0);
 }
 
 .opcoes-container {
@@ -216,7 +216,7 @@ const ativaConteudo = (opcaoSelecionada) => {
 }
 
 .menu{
-    background: linear-gradient(to bottom right, #163f5a, #145730);
+    background: linear-gradient(to right, #283688, #0f163d);
 }
 
 .menu.mostrar {

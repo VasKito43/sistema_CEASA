@@ -10,8 +10,8 @@ const menu = menuStore();
   <div class="cabecalho">
     <div class="centralizado titulo" >
       <button @click="menu.toggle()" class="botaoMenu">☰ </button>
-      <img src="../assets/vue.svg" alt="">
-      <h2 class="tituloCabecalho">Teste Vue</h2>
+      <img src="../assets/alho.svg" alt="">
+      <h2 class="tituloCabecalho">Sistema CEASA</h2>
     </div>
     <div class="funcionario coluna">
       <p>{{ store.estado.funcionario.nome }}</p>

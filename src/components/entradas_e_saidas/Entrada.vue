@@ -1,81 +1,103 @@
 <script setup>
+import { ref, onMounted, computed } from 'vue'
+import { useStore } from '../../store'
 
-import { ref } from 'vue'
-
+const store = useStore()
 
 const produtos = ref([])
 const erro = ref(null)
 const loading = ref(true)
+const produtoSelecionado = ref(null)
+const quantidade = ref('')
 
-const recebeproduto = async () => {
-    try{
-        const resposta = await fetch("http://127.0.0.1:3000/estoque");
-        if (!resposta.ok) {
-            throw new Error("Erro ao realizar busca")
-        }
-        const data = await resposta.json();
-        produtos.value = data;    
-    } catch (error) {
-        erro.value = error.message
-    } finally {
-        loading.value = false
-    }};
+const sortedProdutos = computed(() =>
+  produtos.value.slice().sort((a, b) =>
+    a.nome.localeCompare(b.nome, 'pt', { sensitivity: 'base' })
+  )
+)
 
-recebeproduto()
+async function fetchProdutos() {
+  try {
+    const res = await fetch('http://127.0.0.1:3000/produtos')
+    if (!res.ok) throw new Error('Erro ao buscar produtos')
+    produtos.value = await res.json()
+  } catch (e) {
+    erro.value = e.message
+  } finally {
+    loading.value = false
+  }
+}
+
+onMounted(fetchProdutos)
+
+const cadastrar = async () => {
+  if (!produtoSelecionado.value) {
+    alert('Selecione um produto')
+    return
+  }
+
+  const entrada = {
+    produtoId: produtoSelecionado.value.id,
+    quantidade: Number(quantidade.value),
+    usuarioId: store.estado.funcionario.id
+  }
+
+  try {
+    const res = await fetch('http://127.0.0.1:3000/realizarEntrada', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(entrada)
+    })
+
+    if (res.ok) {
+      alert('Entrada realizada com sucesso!')
+    } else {
+      alert('Erro ao realizar entrada')
+    }
+  } catch (e) {
+    console.error(e)
+    alert('Erro ao realizar entrada')
+  } finally {
+    produtoSelecionado.value = null
+    quantidade.value = ''
+  }
+}
+
 
 </script>
 
 <template>
-    <h2>Entrada de Produto</h2>
-  
+  <h2>Entrada de Produto</h2>
+
   <div class="containerRV">
+    <select v-model="produtoSelecionado" class="selectProduto">
+      <option :value="null">Selecione um produto</option>
+      <option
+        v-for="item in sortedProdutos"
+        :key="item.id"
+        :value="item"
+      >
+        {{ item.nome }}
+      </option>
+    </select>
 
-    <select class="selectProduto">
-        <option value="">Produto</option>
-        <option v-for="produto in produtos" :value="produto" :key="produto.id">{{ produto.nome }} </option>
-    </select> <br>
+    <label class="labelRV labelEnt">Quantidade</label>
+    <input
+      v-model.number="quantidade"
+      @input="quantidade = Math.max(1, Math.floor(quantidade))"
+      type="number"
+      min="1"
+      step="1"
+      class="inputQuantidade inputQuant"
+    />
+    <div v-if="erro" class="erro">{{ erro }}</div>
+    <div v-else-if="loading">Carregando produtos...</div>
+  </div>
 
-    <label class="labelRV">Quantidade{{}}</label>
-
-    <input class="inputQuantidade" type="number" :min="1">
-    
-    <!-- <select v-model="state.cliente" class="selectCliente">
-      <option value="" class="optionCliente">Cliente</option>
-      <option v-for="cliente in state.usuarios" :value="cliente" class="optionCliente">{{ cliente.nome }}</option>
-    </select> <br>
-
-    <div v-for="(item, index) in state.produtos" :key="index" class="divProduto">
-      <select v-model="state.produtos[index].produto" class="selectProduto">
-        <option value="">Produto</option>
-        <option v-for="produto in state.estoque" :value="produto" :key="produto.id">{{ produto.nome }} </option>
-      </select>
-      <input type="number"
-             v-model="state.produtos[index].quantidade"
-             :min="1"
-             :max="state.produtos[index].produto && state.produtos[index].produto.quantidade !== undefined
-             ? state.produtos[index].produto.quantidade 
-             : 1"
-              
-              class="inputQuantidade"
-              @keydown="state.bloquearDigitacao"
-              />
-             <label class="labelRV">{{ state.produtos[index].produto && state.produtos[index].produto.quantidade !== undefined
-                                 ? `Quantidade (${state.produtos[index].produto.quantidade})`
-                                 : 'Quantidade' }}</label>
-      <button @click="state.deletaProduto(index)" class="deletaRV botaoCadastro centra">X</button> -->
-    <!-- </div> -->
-
-    <!-- <button @click="state.adicionaProdutoPedido" class="botaoADP botaoCasdastro">Adicionar Produto </button> <br><br> -->
-
-    
-</div>
-
-<!-- <div class="containerRV2">
-    <p class="total">Total: R$ {{ state.total }}</p>
-    <button @click="state.fecharPedido" class="botaoCasdastro botaoRV">Fechar Pedido</button>
-  </div> -->
+  <div class="containerRV2">
+    <p></p>
+    <button @click="cadastrar" class="botaoCadastro botaoRV">
+      Enviar
+    </button>
+  </div>
 </template>
-
-<style>
-
-</style>

@@ -27,7 +27,7 @@ const entrar = async () => {
     };
 
     try {
-        const resposta = await fetch("http://127.0.0.1:3000/validaFuncionarios", {
+        const resposta = await fetch("http://127.0.0.1:3000/validaUsuario", {
             method: "POST",
             headers: {
                 "Content-Type": "application/json"
@@ -63,8 +63,8 @@ const entrar = async () => {
 <template>
     <div class="centralizado coluna containerLogin">
         <div class="centralizado coluna containerInput">
-            <img src="../assets/vue.svg" alt="" class="logoVue">
-            <p class="textoLogin">Testes Vue</p>
+            <img src="../assets/alho.svg" alt="" class="logoVue">
+            <p class="textoLogin">Sistema CEASA</p>
 
             <input type="text" v-model="cpf" v-mask="'###.###.###-##'" placeholder="CPF" class="inputLogin"
                 :disabled="loading">
@@ -107,7 +107,7 @@ const entrar = async () => {
     }
 
     .inputLogin:focus {
-        outline: 1px solid #00ffbf;
+        outline: 1px solid #3498db;
     }
 
     .botaoLogin {
@@ -121,11 +121,11 @@ const entrar = async () => {
 .containerLogin {
     height: 100%;
     height: 100vh;
-    background: linear-gradient(to right, #7c7c7c, #1f1e1e);
+    background: linear-gradient(to right, #5c5c5c, #3b4ba3);
 }
 
 .logoVue {
-    width: 5vw;
+    width: 10vw;
     margin-top: -3vh;
 }
 

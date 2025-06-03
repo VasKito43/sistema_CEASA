@@ -245,7 +245,7 @@ const filtraClientes = () => {
 
 .botaoAtualizar {
     background: linear-gradient(to right, #30a801ee, #53d119d7);
-    width: 8.5vw;
+    width: 6.5vw;
     font-size: 14pt;
 
 }

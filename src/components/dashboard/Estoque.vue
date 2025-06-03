@@ -1,53 +1,75 @@
 <script setup>
-
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
 
 const estoque = ref([])
 const estoqueFiltrado = ref([])
 const erro = ref(null)
 const loading = ref(true)
 const nome = ref("")
-const valor = ref("")
+const quantidadeMinima = ref("")
 const quantidade = ref("")
 
+const estoqueFiltradoOrdenado = computed(() =>
+  estoqueFiltrado.value.slice().sort((a, b) =>
+    a.nome.localeCompare(b.nome, 'pt', { sensitivity: 'base' })
+  )
+)
 
 const recebeEstoque = async () => {
-    try{
-        const resposta = await fetch("http://127.0.0.1:3000/estoque");
-        if (!resposta.ok) {
-            throw new Error("Erro ao realizar busca")
-        }
-        const data = await resposta.json();
-        estoque.value = data;    
-        filtraEstoque();
-    } catch (error) {
-        erro.value = error.message
-    } finally {
-        loading.value = false
-    }};
+  try {
+    const resposta = await fetch("http://127.0.0.1:3000/produtos")
+    if (!resposta.ok) {
+      throw new Error("Erro ao realizar busca")
+    }
+    const data = await resposta.json()
+    estoque.value = data
+    filtraEstoque()
+  } catch (error) {
+    erro.value = error.message
+  } finally {
+    loading.value = false
+  }
+}
 
 recebeEstoque()
 
-const atualizarEstoque = async (produto) => {
+const filtraEstoque = () => {
+  const quantidadeMin = parseFloat(quantidadeMinima.value)
+  const quantidadeMax = parseFloat(quantidade.value)
+
+  estoqueFiltrado.value = estoque.value.filter((produto) => {
+    const nomeMatch = produto.nome.toLowerCase().includes(nome.value.toLowerCase())
+    const quantidadeMinMatch =
+      !isNaN(quantidadeMin) && quantidadeMinima.value !== ""
+        ? produto.quantidade >= quantidadeMin
+        : true
+    const quantidadeMaxMatch =
+      !isNaN(quantidadeMax) && quantidade.value !== ""
+        ? produto.quantidade <= quantidadeMax
+        : true
+
+    return nomeMatch && quantidadeMinMatch && quantidadeMaxMatch
+  })
+}
+
+const atualizarProduto = async (produto) => {
     loading.value = true
 
-    try{
-        const resposta = await fetch(`http://127.0.0.1:3000/estoque/${produto.id}`,{
+    try {
+        const resposta = await fetch(`http://127.0.0.1:3000/produtos/${produto.id}`, {
             method: "PUT",
             headers: {
                 "Content-Type": "application/json",
-            }, 
+            },
             body: JSON.stringify({
-              nome: produto.nome,
-              quantidade: produto.quantidade,
-              valor: produto.valor,
-              imagem: produto.imagem
+                nome: produto.nome.toUpperCase(),
+                quantidade: produto.quantidade
             })
         });
 
         if (resposta.ok) {
-            alert("Produto atualizado com sucesso!")
-        } else{
+            alert("produto atualizado com sucesso!")
+        } else {
             const erroData = await resposta.json();
             erro.value = (erroData.error);
         }
@@ -55,24 +77,39 @@ const atualizarEstoque = async (produto) => {
         console.error(err);
         erro.value = ("Erro de comunicação com o servidor");
     } finally {
-        recebeEstoque();
+        recebeEstoque()
+    }
+}
+
+const deletarProduto = async (produto) => {
+    const confirmacao = confirm(`Tem certeza que deseja deletar o produto "${produto.nome}"?`)
+
+    if (!confirmacao) {
+        return; // Sai da função se o usuário cancelar
+    }
+
+    loading.value = true
+
+    try {
+        const resposta = await fetch(`http://127.0.0.1:3000/produtos/${produto.id}`, {
+            method: "DELETE"
+        });
+
+        if (resposta.ok) {
+            alert("Produto deletado com sucesso!");
+        } else {
+            const erroData = await resposta.json();
+            erro.value = (erroData.error);
+        }
+    } catch (err) {
+        console.error(err);
+        erro.value = ("Erro de comunicação com o servidor");
+    } finally {
+        recebeEstoque()
     }
 }
 
 
-const filtraEstoque = () => {
-    const valorConvertido = parseFloat(valor.value);
-    const quantidadeConvertido = parseFloat(quantidade.value);
-
-
-    estoqueFiltrado.value = estoque.value.filter(produto => {
-        const nomeMatch = produto.nome.toLowerCase().includes(nome.value.toLowerCase())
-        const valorMatch = !isNaN(valorConvertido) && valor.value !== "" ? produto.valor <= valorConvertido : true;
-        const quantidadeMatch = !isNaN(quantidadeConvertido) && quantidade.value !== "" ? produto.quantidade <= quantidadeConvertido : true;
-        return nomeMatch && valorMatch && quantidadeMatch
-    })
-    console.log(estoqueFiltrado)
-}
 </script>
 
 <template>
@@ -82,15 +119,15 @@ const filtraEstoque = () => {
         <div v-else-if="erro" class="erro">{{ erro }}</div>
         <div v-else class="divPessoas">
             <ul class="ulEstoque">
-                <li v-for="produto in estoqueFiltrado" :key="produto.id" class="itemEstoque ">
-                    <img :src="produto.imagem" alt="imagem do produto" class="imgProduto"><br>
+                <li v-for="produto in estoqueFiltradoOrdenado" :key="produto.id" class="itemEstoque ">
+                    <br>
                     <label class="labelEstoque labelNome">Nome</label>
-                    <input v-model="produto.nome" placeholder="Nome" class="inputEstoque"/><br>
-                    <label class="labelEstoque labelValor">Valor  R$</label>
-                    <input v-model="produto.valor" placeholder="Valor" class="inputEstoque"/> <br>
+                    <input v-model="produto.nome" placeholder="Nome" class="inputEstoque"/>
+                    <button @click="deletarProduto(produto)" class="botaoPessoas botaoAtualizar botaoCP botaoAtualizaEstoque">Deletar</button><br>
+
                     <label class="labelEstoque labelQuantidade">Quantidade</label>
                     <input v-model="produto.quantidade" placeholder="Quantidade" class="inputEstoque"/>
-                    <button @click="atualizarEstoque(produto)" class="botaoPessoas botaoAtualizar botaoAtualizaEstoque">Atualizar</button><br>
+                    <button @click="atualizarProduto(produto)" class="botaoPessoas botaoAtualizar botaoAtualizaEstoque">Atualizar</button><br>
     
                 </li>
             </ul>
@@ -109,12 +146,13 @@ const filtraEstoque = () => {
         </div>
     
         <div class="form1 coluna">
-        <p class="risco">-</p>
-        <div class="form2">
-            <h4>Valor: </h4>
-            <input type="number" v-model="valor" @input="filtraEstoque"  placeholder="Valor Maximo do Produto" class="inputFormEstoque valorFormEstoque">
+          <p class="risco">-</p>
+          <div class="form2">
+            <h4>Quantidade: </h4>
+            <input type="number" v-model="quantidadeMinima" @input="filtraEstoque" placeholder="Quantidade Mínima do Produto" class="inputFormEstoque valorFormEstoque">
+          </div>
         </div>
-        </div>
+
     
         <div class="form1 coluna">
         <p class="risco">-</p>
@@ -140,6 +178,7 @@ const filtraEstoque = () => {
 }
 .itemEstoque{
     min-width: 76vw;
+    min-height: 30vh;
     
 }
 .inputEstoque{
@@ -156,7 +195,7 @@ const filtraEstoque = () => {
 }
 }
 .itemEstoque{
-  height: 30vh;
+  height: 20vh;
   width: 33vw;
   margin-left: 2vw;
   box-shadow: 0 4px 10px rgba(0, 0, 0, 0.4);
