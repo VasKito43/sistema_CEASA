@@ -13,7 +13,7 @@ const cpf = ref("")
 
 const recebeFuncionarios = async () => {
     try {
-        const resposta = await fetch("http://127.0.0.1:3000/funcionarios");
+        const resposta = await fetch(""https://backendvue.onrender.com/funcionarios");
         if (!resposta.ok) {
             throw new Error("Erro ao realizar busca")
         }
@@ -33,7 +33,7 @@ const atualizarFuncionarios = async (funcionario) => {
     loading.value = true
 
     try {
-        const resposta = await fetch(`http://127.0.0.1:3000/funcionarios/${funcionario.id}`, {
+        const resposta = await fetch(`"https://backendvue.onrender.com/funcionarios/${funcionario.id}`, {
             method: "PUT",
             headers: {
                 "Content-Type": "application/json",
@@ -63,7 +63,7 @@ const removerFuncionarios = async (funcionario) => {
     loading.value = true
 
     try {
-        const resposta = await fetch(`http://127.0.0.1:3000/funcionarios/${funcionario.id}`, {
+        const resposta = await fetch(`"https://backendvue.onrender.com/funcionarios/${funcionario.id}`, {
             method: "DELETE"
         });
 

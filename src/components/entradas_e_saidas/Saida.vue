@@ -29,12 +29,12 @@ const produtoObj = computed(() =>
 )
 
 async function fetchProdutos() {
-  const res = await fetch('http://127.0.0.1:3000/produtos')
+  const res = await fetch('"https://backendvue.onrender.com/produtos')
   if (!res.ok) throw new Error('Erro ao buscar produtos')
   produtos.value = await res.json()
 }
 async function fetchVendedores() {
-  const res = await fetch('http://127.0.0.1:3000/vendedores')
+  const res = await fetch('"https://backendvue.onrender.com/vendedores')
   if (!res.ok) throw new Error('Erro ao buscar vendedores')
   vendedores.value = await res.json()
 }
@@ -67,7 +67,7 @@ const cadastrar = async () => {
   }
 
   try {
-    const res = await fetch('http://127.0.0.1:3000/realizarSaida', {
+    const res = await fetch('"https://backendvue.onrender.com/realizarSaida', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(saida)

@@ -13,7 +13,7 @@ const email = ref("")
 
 const recebeUsuarios = async () => {
     try {
-        const resposta = await fetch("http://127.0.0.1:3000/usuarios");
+        const resposta = await fetch(""https://backendvue.onrender.com/usuarios");
         if (!resposta.ok) {
             throw new Error("Erro ao realizar busca")
         }
@@ -34,7 +34,7 @@ const atualizarUsuarios = async (usuario) => {
     loading.value = true
 
     try {
-        const resposta = await fetch(`http://127.0.0.1:3000/usuarios/${usuario.id}`, {
+        const resposta = await fetch(`"https://backendvue.onrender.com/usuarios/${usuario.id}`, {
             method: "PUT",
             headers: {
                 "Content-Type": "application/json",
@@ -64,7 +64,7 @@ const removerUsuarios = async (usuario) => {
     loading.value = true
 
     try {
-        const resposta = await fetch(`http://127.0.0.1:3000/usuarios/${usuario.id}`, {
+        const resposta = await fetch(`"https://backendvue.onrender.com/usuarios/${usuario.id}`, {
             method: "DELETE"
         });
 

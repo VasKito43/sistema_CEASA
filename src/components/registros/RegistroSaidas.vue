@@ -43,7 +43,7 @@ const saidasFiltradasOrdenado = computed(() => {
 // busca API
 const recebeSaidas = async () => {
   try {
-    const resp = await fetch('http://127.0.0.1:3000/recebeSaidas')
+    const resp = await fetch('"https://backendvue.onrender.com/recebeSaidas')
     if (!resp.ok) throw new Error(`Erro HTTP ${resp.status}`)
     saidas.value = await resp.json()
   } catch (e) {
