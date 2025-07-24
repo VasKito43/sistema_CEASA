@@ -18,7 +18,7 @@ const sortedProdutos = computed(() =>
 
 async function fetchProdutos() {
   try {
-    const res = await fetch('https://backendvue.onrender.com/produtos')
+    const res = await fetch('http://127.0.0.1:3000/produtos')
     if (!res.ok) throw new Error('Erro ao buscar produtos')
     produtos.value = await res.json()
   } catch (e) {
@@ -43,7 +43,7 @@ const cadastrar = async () => {
   }
 
   try {
-    const res = await fetch('https://backendvue.onrender.com/realizarEntrada', {
+    const res = await fetch('http://127.0.0.1:3000/realizarEntrada', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(entrada)
