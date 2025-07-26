@@ -46,9 +46,6 @@ p{
   color: white;
 }
 
-select{
-  background: linear-gradient(to bottom right, #3498db, #2ecc71);
-}
 
 li{
   background: linear-gradient(to bottom right, #163f5a, #145730);
@@ -252,7 +249,7 @@ li{
 .labelNome{
   margin-right: 3.4rem; /* arrumar rem*/
 }.labelValor{
-  margin-right: 1.8rem;
+  margin-right: 1rem;
 }.labelQuantidade{
   margin-right: 0.1rem;
 }
@@ -377,7 +374,7 @@ li{
 
 .inputQuantidade{
   border: solid 1px black;
-  width: 3vw;
+  width: 5vw;
   box-shadow: 0 4px 10px rgba(0, 0, 0, 0.4);
   appearance: textfield;
   caret-color: transparent;

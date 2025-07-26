@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onMounted, computed } from 'vue'
+import { ref, onMounted, computed, watch } from 'vue'
 import { useStore } from '../../store'
 
 const produtos = ref([])
@@ -32,6 +32,9 @@ const sortedClientes = computed(() =>
 )
 const sortedFormas = computed(() =>
   formasPagamento.value.slice().sort((a, b) => a.nome.localeCompare(b.nome, 'pt', { sensitivity: 'base' }))
+)
+const selectedProdutoObj = computed(() =>
+  produtos.value.find(p => p.id === produtoSelecionado.value)
 )
 
 // Fetch functions
@@ -68,6 +71,16 @@ onMounted(async () => {
     erro.value = e.message
   } finally {
     loading.value = false
+  }
+})
+
+// Preenche valor de custo automaticamente quando escolhe produto
+watch(produtoSelecionado, novoId => {
+  if (novoId != null) {
+    const prod = produtos.value.find(p => p.id === novoId)
+    valorCusto.value = prod ? prod.valor : null
+  } else {
+    valorCusto.value = null
   }
 })
 
@@ -164,7 +177,10 @@ const cadastrar = async () => {
         </select>
       </div>
       <div class="row">
-        <label>Quantidade</label>
+        <label>
+          Quantidade 
+          <small>(Disponível: {{ selectedProdutoObj?.quantidade || 0 }})</small>
+        </label>
         <input type="number" v-model.number="quantidade" min="1" />
       </div>
       <div class="row">

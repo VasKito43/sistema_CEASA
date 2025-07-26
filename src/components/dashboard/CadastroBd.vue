@@ -57,9 +57,6 @@ const cadastrar = async () => {
     color: rgb(68, 68, 68);
 }
 
-.inputCadastro {
-    background: linear-gradient(to right, #47474744, #0e0d0d63);
-}
 
 @media (max-width: 768px) {
     .tituloCadastro {

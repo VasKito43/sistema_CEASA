@@ -1,21 +1,80 @@
-<script setup>
-import { ref, computed } from 'vue'
+<template>
+  <h2>Registros de Saída</h2>
 
+  <!-- Botão para gerar PDF -->
+
+
+  <div class="containerRV">
+    <div v-if="loading" class="loading">Carregando...</div>
+    <div v-else-if="erro" class="erro">{{ erro }}</div>
+    <div v-else>
+      <div class="pdf-button-container">
+         <button @click="generatePDF" class="botaoPDF">Exportar PDF</button>
+       </div>
+      <ul class="ulEstoque">
+        <li
+          v-for="item in saidasFiltradasOrdenado"
+          :key="item.id"
+          class="itemEntrada"
+        >
+          <h5 class="campo">Usuário: <span>{{ item.usuario_nome }}</span></h5>
+          <h5 class="campo">Produto: <span>{{ item.produto_nome }}</span></h5>
+          <h5 class="campo">Quantidade: <span>{{ item.quantidade }}</span></h5>
+          <h5 class="campo">Data: <span>{{ formatDate(item.data) }}</span></h5>
+          <h5 class="campo">Vendedor: <span>{{ item.vendedor_nome }}</span></h5>
+          <h5 class="campo">Cliente: <span>{{ item.cliente_nome }}</span></h5>
+          <h5 class="campo">Forma Pagamento: <span>{{ item.forma_pagamento_nome }}</span></h5>
+          <h5 class="campo">Valor Custo: <span>{{ formatMoney(item.valor_custo) }}</span></h5>
+          <h5 class="campo">Valor Venda: <span>{{ formatMoney(item.valor_venda) }}</span></h5>
+          <h5 class="campo destaque">Total da Saída: <span>{{ formatMoney(item.total_saida) }}</span></h5>
+          <h5 class="campo destaque">Lucro da Saída: <span>{{ formatMoney(item.lucro_saida) }}</span></h5>
+        </li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="containerBP">
+    <div class="form2">
+      <h4>Buscar por texto:</h4>
+      <input
+        type="text"
+        v-model="filtroTexto"
+        placeholder="Usuário, produto, vendedor ou cliente"
+        class="inputFormEstoque"
+      />
+    </div>
+    <div class="form2">
+      <h4>Filtrar por data:</h4>
+      <input
+        type="date"
+        v-model="filtroData"
+        class="inputFormEstoque"
+      />
+    </div>
+  </div>
+</template>
+
+<script setup>
+import { ref, computed, onMounted } from 'vue'
+import { jsPDF } from 'jspdf'
+import autoTable from 'jspdf-autotable'
+
+// estado
 const saidas = ref([])
 const erro = ref(null)
 const loading = ref(true)
 
 // filtros
-const filtroTexto = ref("")
-const filtroData   = ref("")
+const filtroTexto = ref('')
+const filtroData = ref('')
 
-const parseDateUTC = iso => {
+// parse e formatação de data
+function parseDateUTC(iso) {
   const d = new Date(iso)
   d.setMinutes(d.getMinutes() + d.getTimezoneOffset())
   return d
 }
-
-const formatDate = iso => {
+function formatDate(iso) {
   const d = parseDateUTC(iso)
   const day = String(d.getDate()).padStart(2, '0')
   const month = String(d.getMonth() + 1).padStart(2, '0')
@@ -23,50 +82,45 @@ const formatDate = iso => {
   return `${day}/${month}/${year}`
 }
 
+// helper moeda
+function formatMoney(val) {
+  return `R$ ${val.toFixed(2)}`
+}
+
+// dados enriquecidos e filtrados
 const saidasFiltradasOrdenado = computed(() => {
-  const txt = filtroTexto.value.toLowerCase()
-  const dt  = filtroData.value
-
-  const filtrado = saidas.value.filter(item => {
-    const nomeUsuario     = item.usuario_nome.toLowerCase()
-    const nomeProduto     = item.produto_nome.toLowerCase()
-    const nomeVendedor    = item.vendedor_nome.toLowerCase()
-    const nomeCliente     = item.cliente_nome.toLowerCase()
-    const formaPagamento  = item.forma_pagamento_nome.toLowerCase()
-
-    const d = parseDateUTC(item.data)
-    const rawDate = d.toISOString().slice(0,10)
-
-    const textoMatch = !txt ||
-      nomeUsuario.includes(txt) ||
-      nomeProduto.includes(txt) ||
-      nomeVendedor.includes(txt) ||
-      nomeCliente.includes(txt) ||
-      formaPagamento.includes(txt)
-
-    const dataMatch = !dt || rawDate === dt
-
-    return textoMatch && dataMatch
-  })
-
-  return filtrado
+  return saidas.value
     .map(item => {
-      const valorVenda = item.valor_venda != null ? parseFloat(item.valor_venda) : 0
-      const valorCusto = item.valor_custo != null ? parseFloat(item.valor_custo) : 0
-      const quantidade = item.quantidade != null ? parseInt(item.quantidade) : 0
-
+      const vVenda = parseFloat(item.valor_venda) || 0
+      const vCusto = parseFloat(item.valor_custo) || 0
+      const qtd = parseInt(item.quantidade) || 0
       return {
         ...item,
-        valor_venda: valorVenda,
-        valor_custo: valorCusto,
-        total_saida: valorVenda * quantidade,
-        lucro_saida: (valorVenda - valorCusto) * quantidade
+        valor_venda: vVenda,
+        valor_custo: vCusto,
+        total_saida: vVenda * qtd,
+        lucro_saida: (vVenda - vCusto) * qtd
       }
     })
-    .sort((a, b) => parseDateUTC(b.data) - parseDateUTC(a.data))
+    .filter(item => {
+      const txt = filtroTexto.value.toLowerCase()
+      const dateFilter = filtroData.value
+      const rawDate = parseDateUTC(item.data).toISOString().slice(0,10)
+      const matchTxt = !txt ||
+        item.usuario_nome.toLowerCase().includes(txt) ||
+        item.produto_nome.toLowerCase().includes(txt) ||
+        item.vendedor_nome.toLowerCase().includes(txt) ||
+        item.cliente_nome.toLowerCase().includes(txt) ||
+        item.forma_pagamento_nome.toLowerCase().includes(txt)
+      const matchDate = !dateFilter || rawDate === dateFilter
+      return matchTxt && matchDate
+    })
+    .sort((a,b) => parseDateUTC(b.data) - parseDateUTC(a.data))
 })
 
-const recebeSaidas = async () => {
+// busca no back
+async function recebeSaidas() {
+  loading.value = true
   try {
     const resp = await fetch('http://127.0.0.1:3000/recebeSaidas')
     if (!resp.ok) throw new Error(`Erro HTTP ${resp.status}`)
@@ -78,92 +132,48 @@ const recebeSaidas = async () => {
   }
 }
 
-recebeSaidas()
+onMounted(() => {
+  recebeSaidas()
+})
+
+// PDF
+function generatePDF() {
+  const doc = new jsPDF({ orientation: 'landscape' })
+  const columns = [
+    'Usuário','Produto','Qtd','Data','Vendedor','Cliente','Forma','Custo','Venda','Total','Lucro'
+  ]
+  const rows = saidasFiltradasOrdenado.value.map(i => [
+    i.usuario_nome,
+    i.produto_nome,
+    i.quantidade,
+    formatDate(i.data),
+    i.vendedor_nome,
+    i.cliente_nome,
+    i.forma_pagamento_nome,
+    i.valor_custo.toFixed(2),
+    i.valor_venda.toFixed(2),
+    i.total_saida.toFixed(2),
+    i.lucro_saida.toFixed(2)
+  ])
+  autoTable(doc, { head: [columns], body: rows, startY: 20, styles: { fontSize: 8 } })
+  doc.save('registros_saida.pdf')
+}
 </script>
 
-<template>
-  <h2>Registros de Saída</h2>
-
-  <div class="containerRV">
-    <div v-if="loading" class="loading">Carregando...</div>
-    <div v-else-if="erro" class="erro">{{ erro }}</div>
-    <div v-else>
-      <ul class="ulEstoque">
-        <li v-for="item in saidasFiltradasOrdenado" :key="item.id" class="itemEntrada">
-          <h5 class="campo">Usuário: <span>{{ item.usuario_nome }}</span></h5>
-          <h5 class="campo">Produto: <span>{{ item.produto_nome }}</span></h5>
-          <h5 class="campo">Quantidade: <span>{{ item.quantidade }}</span></h5>
-          <h5 class="campo">Data: <span>{{ formatDate(item.data) }}</span></h5>
-          <h5 class="campo">Vendedor: <span>{{ item.vendedor_nome }}</span></h5>
-          <h5 class="campo">Cliente: <span>{{ item.cliente_nome }}</span></h5>
-          <h5 class="campo">Forma Pagamento: <span>{{ item.forma_pagamento_nome }}</span></h5>
-          <h5 class="campo">Valor Custo: <span>{{ item.valor_custo ? `R$ ${item.valor_custo.toFixed(2)}` : '-' }}</span></h5>
-          <h5 class="campo">Valor Venda: <span>{{ item.valor_venda ? `R$ ${item.valor_venda.toFixed(2)}` : '-' }}</span></h5>
-          <h5 class="campo">Descrição: <span>{{ item.descrição }}</span></h5>
-
-          <!-- NOVOS CAMPOS -->
-          <h5 class="campo destaque">Total da Saída: <span>R$ {{ item.total_saida.toFixed(2) }}</span></h5>
-          <h5 class="campo destaque">Lucro da Saída: <span>R$ {{ item.lucro_saida.toFixed(2) }}</span></h5>
-        </li>
-      </ul>
-    </div>
-  </div>
-
-  <div class="containerBP">
-    <div class="form2">
-      <h4>Buscar por texto:</h4>
-      <input type="text" v-model="filtroTexto" placeholder="Usuário, produto, vendedor ou cliente" class="inputFormEstoque" />
-    </div>
-    <div class="form2">
-      <h4>Filtrar por data:</h4>
-      <input type="date" v-model="filtroData" class="inputFormEstoque" />
-    </div>
-  </div>
-</template>
-
 <style scoped>
-@media (max-width: 768px) {
-  .inputFormEstoque { width: 50vw; }
-  .itemEntrada { min-width: 76vw; }
+.pdf-button-container { margin:1rem 0; }
+.botaoPDF {
+  padding:0.5rem 1rem; background:#007bff; color:#fff; border:none; border-radius:4px;
+  cursor:pointer; font-size:1rem;
 }
-.itemEntrada {
-  display: flex;
-  flex-direction: column;
-  justify-content: space-around;
-  width: 30vw;
-  margin: 1vh 1vw;
-  padding: 1.5vh 1vw;
-  background: #1f1f1f;
-  border-radius: 8px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
-  border: 1px solid #333;
-}
-.ulEstoque {
-  display: flex;
-  flex-wrap: wrap;
-  list-style: none;
-  padding: 0;
-}
-h5.campo {
-  font-size: 1rem;
-  font-weight: 500;
-  color: #e0e0e0;
-  margin: 0.3em 0;
-}
-h5.campo span {
-  font-weight: 600;
-  color: #fff;
-}
-h5.campo.destaque span {
-  color: #00e676;
-}
-.loading, .erro {
-  font-size: 1.2em;
-  color: #f0f0f0;
-  text-align: center;
-  margin: 2vh 0;
-}
-.form2 {
-  margin: 1em 0;
+.ulEstoque { display:flex; flex-wrap:wrap; gap:1rem; list-style:none; padding:0; }
+.itemEntrada { background:#333; padding:1rem; border-radius:6px; width:28vw; }
+h5.campo { margin:0.2rem 0; color:#eee; font-size:0.9rem; }
+h5.campo span { font-weight:600; color:#fff; }
+.campo.destaque span { color:#4caf50; }
+.inputFormEstoque { padding:0.5rem; border:1px solid #ccc; border-radius:4px; }
+@media(max-width:768px) {
+  .itemEntrada { width:76vw; }
+  .containerBP { flex-direction:column; }
 }
 </style>

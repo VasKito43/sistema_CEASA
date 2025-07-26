@@ -7,8 +7,10 @@ const store = useStore()
 const produtos = ref([])
 const erro = ref(null)
 const loading = ref(true)
+
 const produtoSelecionado = ref(null)
-const quantidade = ref('')
+const quantidade         = ref(1)
+const valorUnitario      = ref('')   // <- novo
 
 const sortedProdutos = computed(() =>
   produtos.value.slice().sort((a, b) =>
@@ -35,10 +37,15 @@ const cadastrar = async () => {
     alert('Selecione um produto')
     return
   }
+  if (!valorUnitario.value || isNaN(Number(valorUnitario.value))) {
+    alert('Informe um valor válido')
+    return
+  }
 
   const entrada = {
     produtoId: produtoSelecionado.value.id,
     quantidade: Number(quantidade.value),
+    valor: Number(valorUnitario.value),        // <- novo
     usuarioId: store.estado.funcionario.id
   }
 
@@ -52,18 +59,18 @@ const cadastrar = async () => {
     if (res.ok) {
       alert('Entrada realizada com sucesso!')
     } else {
-      alert('Erro ao realizar entrada')
+      const err = await res.json().catch(()=>null)
+      alert(err?.error || 'Erro ao realizar entrada')
     }
   } catch (e) {
     console.error(e)
     alert('Erro ao realizar entrada')
   } finally {
     produtoSelecionado.value = null
-    quantidade.value = ''
+    quantidade.value = 1
+    valorUnitario.value = ''
   }
 }
-
-
 </script>
 
 <template>
@@ -79,25 +86,46 @@ const cadastrar = async () => {
       >
         {{ item.nome }}
       </option>
-    </select>
-
-    <label class="labelRV labelEnt">Quantidade</label>
+    </select><br>
+    
+    <label class="labelRV labelEnt entrada-ml">Quantidade</label>
     <input
       v-model.number="quantidade"
       @input="quantidade = Math.max(1, Math.floor(quantidade))"
       type="number"
       min="1"
       step="1"
-      class="inputQuantidade inputQuant"
-    />
+      class="inputQuantidade inputQuant entrada-ml"
+    /><br>
+
+    <label class="labelRV labelEnt entrada-ml">Valor Unitário</label>
+    <input
+      v-model="valorUnitario"
+      type="number"
+      min="0"
+      step="0.01"
+      placeholder="R$ 0.00"
+      class="  inputVUentrada"
+    /><br>
+
     <div v-if="erro" class="erro">{{ erro }}</div>
     <div v-else-if="loading">Carregando produtos...</div>
   </div>
 
   <div class="containerRV2">
-    <p></p>
     <button @click="cadastrar" class="botaoCadastro botaoRV">
       Enviar
     </button>
   </div>
 </template>
+
+<style>
+
+.entrada-ml{
+margin-left: 2vw;
+}
+.inputVUentrada{
+  margin-left: 1.4vw;
+  width: 5vw;
+}
+</style>

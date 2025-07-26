@@ -63,7 +63,8 @@ const atualizarProduto = async (produto) => {
             },
             body: JSON.stringify({
                 nome: produto.nome.toUpperCase(),
-                quantidade: produto.quantidade
+                quantidade: produto.quantidade,
+                valor: Number(produto.valor)
             })
         });
 
@@ -122,11 +123,14 @@ const deletarProduto = async (produto) => {
                 <li v-for="produto in estoqueFiltradoOrdenado" :key="produto.id" class="itemEstoque ">
                     <br>
                     <label class="labelEstoque labelNome">Nome</label>
-                    <input v-model="produto.nome" placeholder="Nome" class="inputEstoque"/>
-                    <button @click="deletarProduto(produto)" class="botaoPessoas botaoAtualizar botaoCP botaoAtualizaEstoque">Deletar</button><br>
-
+                    <input v-model="produto.nome" placeholder="Nome" class="inputEstoque"/><br>
+                    
                     <label class="labelEstoque labelQuantidade">Quantidade</label>
-                    <input v-model="produto.quantidade" placeholder="Quantidade" class="inputEstoque"/>
+                    <input v-model="produto.quantidade" placeholder="Quantidade" class="inputEstoque"/><br>
+                    <!-- <button @click="deletarProduto(produto)" class="botaoPessoas botaoAtualizar botaoCP botaoAtualizaEstoque">Deletar</button><br> -->
+
+                    <label class="labelEstoque labelValor">Valor (R$)</label>
+                    <input v-model.number="produto.valor" type="number" min="0" step="0.01" class="inputEstoque"/>
                     <button @click="atualizarProduto(produto)" class="botaoPessoas botaoAtualizar botaoAtualizaEstoque">Atualizar</button><br>
     
                 </li>
@@ -195,7 +199,7 @@ const deletarProduto = async (produto) => {
 }
 }
 .itemEstoque{
-  height: 20vh;
+  height: 25vh;
   width: 33vw;
   margin-left: 2vw;
   box-shadow: 0 4px 10px rgba(0, 0, 0, 0.4);
@@ -213,4 +217,6 @@ const deletarProduto = async (produto) => {
 .botaoAtualizaEstoque{
     padding: 1vh;
 }
+
+
 </style>

@@ -21,6 +21,7 @@ import RegistroEntradas from './registros/RegistroEntradas.vue'
 import RegistroSaidas from './registros/RegistroSaidas.vue'
 import CadastroCliente from './dashboard/CadastroCliente.vue'
 import LucrosTotais from './registros/LucrosTotais.vue'
+import FechamentoCaixa from './registros/FechamentoCaixa.vue'
 
 const router = useRouter();
 const conteudo = ref(null)
@@ -44,6 +45,7 @@ const componentesRegistro = ref([
     { texto: "Registro de Entradas", componente: RegistroEntradas, ativado: false},
     { texto: "Registro de Saidas", componente: RegistroSaidas, ativado: false},
     { texto: "Lucros Totais", componente: LucrosTotais, ativado: false},
+    { texto: "Fechamento de Caixa", componente: FechamentoCaixa, ativado: false}
 
     // { texto: "Registro de Alteração", componente: BuscaPedido, ativado: false},
     // { texto: "Registro de Excluidos", componente: Funcionarios, ativado: false}

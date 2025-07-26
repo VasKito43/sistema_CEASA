@@ -34,7 +34,7 @@
           v-if="periodType === 'month'"
           v-model="periodValue"
           type="month"
-          class="inputFormBP period-input"
+          class=" period-input"
           @change="fetchMetrics"
         />
         <input
@@ -44,7 +44,7 @@
           min="2000"
           max="2100"
           placeholder="Ano"
-          class="inputFormBP period-input"
+          class=" period-input"
           @change="fetchMetrics"
         />
       </div>
@@ -64,6 +64,38 @@
           <p class="card-value">{{ numVendas }}</p>
         </div>
       </div>
+
+      <div v-if="vendedorSelecionado == 1" class="extra-cards">
+       <div class="card extra">
+         <h3>Lucro do Ronaldo</h3>
+         <p class="card-value">R$ {{ (lucro/3).toFixed(2) }}</p>
+       </div>
+       <div class="card extra">
+         <h3>Lucro do Bruno</h3>
+         <p class="card-value">R$ {{ (lucro/3).toFixed(2) }}</p>
+       </div>
+       <div class="card extra">
+         <h3>Lucro do Romildo</h3>
+         <p class="card-value">R$ {{ (lucro/3).toFixed(2) }}</p>
+       </div>
+     </div>
+
+     <!-- Cartões extras para vendedor 3 -->
+      <div v-if="vendedorSelecionado == 3" class="extra-cards">
+        <div class="card extra">
+          <h3>Lucro do Marcos (2%)</h3>
+          <p class="card-value">
+            R$ {{ (Number(totalVendas) * 0.02).toFixed(2) }}
+          </p>
+        </div>
+        <div class="card extra">
+          <h3>Lucro Final</h3>
+          <p class="card-value">
+            R$ {{ (Number(lucro) - Number(totalVendas) * 0.02).toFixed(2) }}
+          </p>
+        </div>
+      </div>
+
 
       <!-- Filtros Inferiores -->
       <div class="filter-row bottom-filters">
@@ -141,6 +173,9 @@ const produtos   = ref([])
 const clientes   = ref([])
 const formas     = ref([])
 
+
+
+
 // Carrega vendors, produtos, clientes, formas
 async function fetchLists() {
   const [rv, rp, rc, rf] = await Promise.all([
@@ -197,6 +232,7 @@ async function fetchMetrics() {
     if (clienteSelecionado.value)       params.append('cliente',     clienteSelecionado.value)
     if (formaPagamentoSelecionada.value) params.append('pagamento',  formaPagamentoSelecionada.value)
 
+    console.log(vendedorSelecionado.value)
     const res = await fetch(`http://127.0.0.1:3000/lucros?${params.toString()}`)
     if (!res.ok) {
       const errData = await res.json().catch(() => ({}))
@@ -229,17 +265,17 @@ onMounted(async () => {
   border-radius: 8px 8px 0 0;
   box-shadow: 0 2px 8px rgba(0,0,0,0.1);
   width: 100%;
-  min-height: 700px;
+  min-height: 79vh;
 }
 .filter-row { display: flex; align-items: center; gap: 1.5rem; margin-bottom: 1.5rem; }
 .filter-label, .period-label { font-weight: 700; color: #333; font-size: 1.2rem; }
 .select-search, .inputFormBP, .period-select, .period-input {
   padding: 0.75rem 1.25rem; border: 1px solid #bbb; border-radius: 4px; background: #fafafa;
-  font-size: 1.1rem; transition: border-color 0.2s;
+  font-size: 1.1rem; transition: border-color 0.2s; height: 6vh;
 }
 .select-search:focus, .inputFormBP:focus { outline: none; border-color: #0069d9; }
-.period-select { width: 9rem; }
-.period-input { width: 14rem; }
+.period-select { width: 9rem; height: 6vh;}
+.period-input { width: 14rem; height: 6vh;}
 .metrics-cards {
   display: flex; gap: 1.25rem; justify-content: space-between; margin-bottom: 2rem;
 }
@@ -263,5 +299,16 @@ onMounted(async () => {
   .select-search, .period-select, .period-input {
     width: 100%;
   }
+}
+
+.extra-cards {
+  display: flex;
+  gap: 1rem;
+  margin-bottom: 2rem;
+}
+.extra-cards .card.extra {
+  flex: 1;
+  background: #cce5ff;
+  border: 1px solid #004085;
 }
 </style>

@@ -9,6 +9,8 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "jspdf": "^3.0.1",
+    "jspdf-autotable": "^5.0.2",
     "lucide-vue-next": "^0.475.0",
     "pinia": "^3.0.0",
     "v-mask": "^2.3.0",

@@ -1,7 +1,7 @@
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 
-const entrada = ref([])
+const entradas = ref([])
 const erro = ref(null)
 const loading = ref(true)
 
@@ -14,35 +14,39 @@ const formatDate = iso => new Date(iso).toLocaleDateString('pt-BR', {
   day: '2-digit', month: '2-digit', year: 'numeric'
 })
 
-// computa lista filtrada e ordenada
-const entradaFiltradoOrdenado = computed(() => {
+// computa lista filtrada, enriquecida e ordenada
+const entradasFiltradasOrdenado = computed(() => {
   const txt = filtroTexto.value.toLowerCase()
   const dt  = filtroData.value
 
-  const filtrado = entrada.value.filter(item => {
-    const nomeUsuario = item.usuario_nome.toLowerCase()
-    const nomeProduto = item.produto_nome.toLowerCase()
-    // obtém data local no formato YYYY-MM-DD para comparar
-    const itemDate = new Date(item.data)
-      .toLocaleDateString('en-CA')
+  return entradas.value
+    .filter(item => {
+      const nomeUsuario = item.usuario_nome.toLowerCase()
+      const nomeProduto = item.produto_nome.toLowerCase()
+      const rawDate = new Date(item.data).toISOString().slice(0,10)
 
-    const textoMatch = !txt || nomeUsuario.includes(txt) || nomeProduto.includes(txt)
-    const dataMatch  = !dt || itemDate === dt
-
-    return textoMatch && dataMatch
-  })
-
-  return filtrado
-    .slice()
+      const textoMatch = !txt || nomeUsuario.includes(txt) || nomeProduto.includes(txt)
+      const dataMatch  = !dt || rawDate === dt
+      return textoMatch && dataMatch
+    })
+    .map(item => {
+      const valorUnit = item.valor != null ? parseFloat(item.valor) : 0
+      const quantidade = item.quantidade != null ? parseInt(item.quantidade) : 0
+      return {
+        ...item,
+        valor: valorUnit,
+        total_entrada: valorUnit * quantidade
+      }
+    })
     .sort((a, b) => new Date(b.data) - new Date(a.data))
 })
 
 // busca API
-const recebeEntrada = async () => {
+const recebeEntradas = async () => {
   try {
     const resp = await fetch('http://127.0.0.1:3000/recebeEntradas')
     if (!resp.ok) throw new Error(`Erro HTTP ${resp.status}`)
-    entrada.value = await resp.json()
+    entradas.value = await resp.json()
   } catch (e) {
     erro.value = e.message
   } finally {
@@ -50,7 +54,9 @@ const recebeEntrada = async () => {
   }
 }
 
-recebeEntrada()
+onMounted(() => {
+  recebeEntradas()
+})
 </script>
 
 <template>
@@ -61,10 +67,16 @@ recebeEntrada()
     <div v-else-if="erro" class="erro">{{ erro }}</div>
     <div v-else>
       <ul class="ulEstoque">
-        <li v-for="item in entradaFiltradoOrdenado" :key="item.id" class="itemEntrada">
+        <li
+          v-for="item in entradasFiltradasOrdenado"
+          :key="item.id"
+          class="itemEntrada"
+        >
           <h5 class="campo">Usuário: <span>{{ item.usuario_nome }}</span></h5>
           <h5 class="campo">Produto: <span>{{ item.produto_nome }}</span></h5>
           <h5 class="campo">Quantidade: <span>{{ item.quantidade }}</span></h5>
+          <h5 class="campo">Valor Unitário: <span>R$ {{ item.valor.toFixed(2) }}</span></h5>
+          <h5 class="campo">Total da Entrada: <span>R$ {{ item.total_entrada.toFixed(2) }}</span></h5>
           <h5 class="campo">Data: <span>{{ formatDate(item.data) }}</span></h5>
         </li>
       </ul>
@@ -74,29 +86,30 @@ recebeEntrada()
   <div class="containerBP">
     <div class="form2">
       <h4>Buscar por nome:</h4>
-      <input type="text" v-model="filtroTexto" placeholder="Nome de usuário ou produto" class="inputFormEstoque" />
+      <input
+        type="text"
+        v-model="filtroTexto"
+        placeholder="Nome de usuário ou produto"
+        class="inputFormEstoque"
+      />
     </div>
     <div class="form2">
       <h4>Filtrar por data:</h4>
-      <input type="date" v-model="filtroData" class="inputFormEstoque" />
+      <input
+        type="date"
+        v-model="filtroData"
+        class="inputFormEstoque"
+      />
     </div>
   </div>
 </template>
 
-<style>
+<style scoped>
 @media (max-width: 768px) {
-  .inputFormEstoque {
-    width: 50vw;
-  }
-  .nomeFormEstoque {
-    margin-left: 16.5vw;
-  }
-  .itemEntrada {
-    min-width: 76vw;
-  }
+  .inputFormEstoque { width: 50vw; }
+  .itemEntrada { min-width: 76vw; }
 }
 
-/* Estilização geral do item */
 .itemEntrada {
   display: flex;
   flex-direction: column;
@@ -110,7 +123,6 @@ recebeEntrada()
   border: 1px solid #333;
 }
 
-/* Lista sem marcadores */
 .ulEstoque {
   display: flex;
   flex-wrap: wrap;
@@ -118,7 +130,6 @@ recebeEntrada()
   padding: 0;
 }
 
-/* Títulos de campo */
 h5.campo {
   font-size: 1rem;
   font-weight: 500;
@@ -126,7 +137,6 @@ h5.campo {
   margin: 0.3em 0;
 }
 
-/* Valor dentro do span */
 h5.campo span {
   font-weight: 600;
   color: #fff;
