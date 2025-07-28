@@ -9,8 +9,8 @@
     <div v-else-if="erro" class="erro">{{ erro }}</div>
     <div v-else>
       <div class="pdf-button-container">
-         <button @click="generatePDF" class="botaoPDF">Exportar PDF</button>
-       </div>
+        <button @click="generatePDF" class="botaoPDF">Exportar PDF</button>
+      </div>
       <ul class="ulEstoque">
         <li
           v-for="item in saidasFiltradasOrdenado"
@@ -44,10 +44,34 @@
       />
     </div>
     <div class="form2">
-      <h4>Filtrar por data:</h4>
+      <h4>Período:</h4>
+      <select v-model="periodType" @change="onPeriodChange" class="inputFormEstoque">
+        <option value="year">Ano</option>
+        <option value="month">Mês</option>
+        <option value="day">Dia</option>
+      </select>
       <input
+        v-if="periodType === 'day'"
         type="date"
-        v-model="filtroData"
+        v-model="periodValue"
+        @change="filtrarSaidas"
+        class="inputFormEstoque"
+      />
+      <input
+        v-else-if="periodType === 'month'"
+        type="month"
+        v-model="periodValue"
+        @change="filtrarSaidas"
+        class="inputFormEstoque"
+      />
+      <input
+        v-else
+        type="number"
+        min="2000"
+        max="2100"
+        v-model="periodValue"
+        @change="filtrarSaidas"
+        placeholder="Ano"
         class="inputFormEstoque"
       />
     </div>
@@ -66,7 +90,8 @@ const loading = ref(true)
 
 // filtros
 const filtroTexto = ref('')
-const filtroData = ref('')
+const periodType  = ref('month')
+const periodValue = ref('')
 
 // parse e formatação de data
 function parseDateUTC(iso) {
@@ -87,13 +112,29 @@ function formatMoney(val) {
   return `R$ ${val.toFixed(2)}`
 }
 
+// filtra apenas altera o período
+function filtrarSaidas() {
+  // nenhuma ação além de disparar recompute
+}
+
+// inicializa periodValue
+function onPeriodChange() {
+  if (periodType.value === 'day') {
+    periodValue.value = new Date().toISOString().slice(0,10)
+  } else if (periodType.value === 'month') {
+    periodValue.value = new Date().toISOString().slice(0,7)
+  } else {
+    periodValue.value = new Date().getFullYear().toString()
+  }
+}
+
 // dados enriquecidos e filtrados
 const saidasFiltradasOrdenado = computed(() => {
   return saidas.value
     .map(item => {
       const vVenda = parseFloat(item.valor_venda) || 0
       const vCusto = parseFloat(item.valor_custo) || 0
-      const qtd = parseInt(item.quantidade) || 0
+      const qtd    = parseInt(item.quantidade)     || 0
       return {
         ...item,
         valor_venda: vVenda,
@@ -104,15 +145,23 @@ const saidasFiltradasOrdenado = computed(() => {
     })
     .filter(item => {
       const txt = filtroTexto.value.toLowerCase()
-      const dateFilter = filtroData.value
-      const rawDate = parseDateUTC(item.data).toISOString().slice(0,10)
-      const matchTxt = !txt ||
+      const rawDate = parseDateUTC(item.data)
+        .toISOString()
+        .slice(0,
+          periodType.value === 'day'   ? 10 :
+          periodType.value === 'month' ? 7  :
+          4
+        )
+
+      const matchTxt  = !txt ||
         item.usuario_nome.toLowerCase().includes(txt) ||
         item.produto_nome.toLowerCase().includes(txt) ||
         item.vendedor_nome.toLowerCase().includes(txt) ||
         item.cliente_nome.toLowerCase().includes(txt) ||
         item.forma_pagamento_nome.toLowerCase().includes(txt)
-      const matchDate = !dateFilter || rawDate === dateFilter
+
+      const matchDate = !periodValue.value || rawDate === periodValue.value
+
       return matchTxt && matchDate
     })
     .sort((a,b) => parseDateUTC(b.data) - parseDateUTC(a.data))
@@ -133,6 +182,7 @@ async function recebeSaidas() {
 }
 
 onMounted(() => {
+  onPeriodChange()
   recebeSaidas()
 })
 
@@ -155,7 +205,12 @@ function generatePDF() {
     i.total_saida.toFixed(2),
     i.lucro_saida.toFixed(2)
   ])
-  autoTable(doc, { head: [columns], body: rows, startY: 20, styles: { fontSize: 8 } })
+  autoTable(doc, {
+    head: [columns],
+    body: rows,
+    startY: 20,
+    styles: { fontSize: 8 }
+  })
   doc.save('registros_saida.pdf')
 }
 </script>
