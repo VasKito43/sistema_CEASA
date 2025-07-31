@@ -181,88 +181,85 @@ function formatMoney(val) {
 
 // PDF
 async function generatePDF() {
-  const doc = new jsPDF({ orientation: 'portrait' });
-  const chosen = vendedorSelecionado.value;
+  const doc = new jsPDF({ orientation: 'portrait' })
 
-  // mapa de grupos
-  const groupMap = {
-    CM:      [4,5,6,7,8,9],
-    GERAL:   [1,3,4,5,6,7,8,9],
-    FAMILIA: [5,8,9]
-  };
+  // ===== Cabeçalho =====
+  doc.setFontSize(14)
+  doc.text('Fechamento de Caixa', 14, 20)
 
-  // 1) não é grupo: comportamento normal
-  if (!groupMap[chosen]) {
-    const head = [['Forma','Recebido','Lucro']];
-    const body = Object.entries(valoresPorForma.value)
-      .map(([f,d]) => [ f, d.total.toFixed(2), d.lucro.toFixed(2) ]);
-    body.push([ 'TOTAL GERAL', totalGeral.value.toFixed(2), lucroGeral.value.toFixed(2) ]);
-    autoTable(doc, { head, body, startY: 20, styles:{ fontSize:10 } });
-    doc.save(`fechamento_${dateValue.value}_${chosen}.pdf`);
-    return;
-  }
+  doc.setFontSize(11)
+  doc.text(`Data: ${dateValue.value}`, 14, 32)
 
-  // 2) É grupo: gerar uma seção por vendedor
-  let y = 20;
-  for (const id of groupMap[chosen]) {
-    // busca fechamento individual
-    const res = await fetch(`https://backendvue.onrender.com/fechamento?date=${dateValue.value}&vendedor=${id}`);
-    const { valoresPorForma: vf, totalGeral: tg, lucroGeral: lg } = await res.json();
+  const label = ['CM','GERAL','FAMILIA'].includes(vendedorSelecionado.value)
+    ? vendedorSelecionado.value
+    : getSellerName(vendedorSelecionado.value)
+  doc.text(`Vendedor/Grupo: ${label}`, 14, 44)
+  // =====================
 
-    // título do vendedor
-    doc.setFontSize(12);
-    doc.text(`Vendedor: ${getSellerName(id)}`, 14, y);
-    y += 6;
-
-    // tabela do vendedor
-    const head = [['Forma','Recebido','Lucro']];
-    const body = Object.entries(vf)
-      .map(([f,d]) => [ f, d.total.toFixed(2), d.lucro.toFixed(2) ]);
-    body.push([ 'TOTAL', tg.toFixed(2), lg.toFixed(2) ]);
-
-    autoTable(doc, {
-      head, body,
-      startY: y,
-      styles: { fontSize: 8 }
-    });
-    y = doc.lastAutoTable.finalY + 7;
-    if (y > 260) {  // quebra de página
-      doc.addPage();
-      y = 20;
-    }
-  }
-
-  // 3) Tabela de TOTAL AGREGADO DO GRUPO
-  const totReceita = [], totLucro = [];
-  for (const id of groupMap[chosen]) {
-    const res = await fetch(`https://backendvue.onrender.com/fechamento?date=${dateValue.value}&vendedor=${id}`);
-    const { totalGeral: tg, lucroGeral: lg } = await res.json();
-    totReceita.push(tg);
-    totLucro.push(lg);
-  }
-  const sumReceita = totReceita.reduce((a,b) => a + b, 0);
-  const sumLucro   = totLucro.reduce((a,b) => a + b, 0);
-
-  let y2 = doc.lastAutoTable.finalY + 5;
-  
-  doc.setFontSize(12);
-  doc.text('TOTAL AGREGADO DO GRUPO', 14, y2);
-  y2 += 6;
+  // ----- Tabela: Formas de Pagamento -----
+  const headFP = [['Forma', 'Recebido (R$)', 'Lucro (R$)']]
+  const bodyFP = Object.entries(valoresPorForma.value).map(([f, d]) => [
+    f,
+    d.total.toFixed(2),
+    d.lucro.toFixed(2),
+  ])
+  bodyFP.push([
+    'TOTAL GERAL',
+    totalGeral.value.toFixed(2),
+    lucroGeral.value.toFixed(2),
+  ])
 
   autoTable(doc, {
-    head: [['','Receita (R$)','Lucro (R$)']],
-    body: [[ 
-      'TOTAL GRUPO', 
-      sumReceita.toFixed(2),
-      sumLucro.toFixed(2)
-    ]],
-    startY: y2,
-    styles: { fontSize: 10 }
-  });
+    head: headFP,
+    body: bodyFP,
+    startY: 56,
+    styles: { fontSize: 10 },
+  })
 
-  // 4) Salvar
-  doc.save(`fechamento_${dateValue.value}_${chosen}.pdf`);
+  // ----- Se for grupo: resumo por vendedor -----
+  if (['CM','GERAL','FAMILIA'].includes(vendedorSelecionado.value)) {
+    let y = doc.lastAutoTable.finalY + 10
+
+    // título
+    doc.setFontSize(12)
+    doc.text('Resumo por Vendedor', 14, y)
+    y += 8
+
+    const headSV = [['Vendedor', 'Receita (R$)', 'Lucro Ajustado (R$)']]
+    const bodySV = []
+
+    // itera apenas sobre quem foi preenchido em sellerMetrics
+    for (const [id, stats] of Object.entries(sellerMetrics.value || {})) {
+      bodySV.push([
+        getSellerName(Number(id)),
+        stats.total.toFixed(2),
+        stats.lucro.toFixed(2),
+      ])
+    }
+
+    // total do grupo
+    const totReceita = Object.values(sellerMetrics.value || {})
+      .reduce((sum, x) => sum + x.total, 0)
+    const totLucro = Object.values(sellerMetrics.value || {})
+      .reduce((sum, x) => sum + x.lucro, 0)
+
+    bodySV.push([
+      'TOTAL GRUPO',
+      totReceita.toFixed(2),
+      totLucro.toFixed(2),
+    ])
+
+    autoTable(doc, {
+      head: headSV,
+      body: bodySV,
+      startY: y,
+      styles: { fontSize: 10 },
+    })
+  }
+
+  doc.save(`fechamento_${dateValue.value}_${vendedorSelecionado.value}.pdf`)
 }
+
 
 // on mount
 onMounted(async () => {
