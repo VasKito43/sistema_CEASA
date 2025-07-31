@@ -224,7 +224,7 @@ const ativaConteudo = (opcaoSelecionada) => {
 }
 
 .menu{
-    background: linear-gradient(to right, #283688, #0f163d);
+    background: linear-gradient(to right, #3b3b3b, #252525);
 }
 
 .menu.mostrar {

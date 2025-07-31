@@ -64,7 +64,7 @@ const entrar = async () => {
     <div class="centralizado coluna containerLogin">
         <div class="centralizado coluna containerInput">
             <img src="../assets/alho.svg" alt="" class="logoVue">
-            <p class="textoLogin">Sistema CEASA</p>
+            <p class="textoLogin">Sistema</p>
 
             <input type="text" v-model="cpf" v-mask="'###.###.###-##'" placeholder="CPF" class="inputLogin"
                 :disabled="loading">

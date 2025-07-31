@@ -281,6 +281,7 @@ watch(vendedorSelecionado, () => {
   background: #fff;
   padding: 1.5rem;
   border-radius: 8px;
+  min-height: 77vh;
 }
 .filter-row {
   display: flex;
@@ -344,5 +345,6 @@ watch(vendedorSelecionado, () => {
   .metrics-cards {
     flex-direction: column;
   }
+  
 }
 </style>

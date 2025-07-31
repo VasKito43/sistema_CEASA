@@ -11,7 +11,7 @@ const menu = menuStore();
     <div class="centralizado titulo" >
       <button @click="menu.toggle()" class="botaoMenu">☰ </button>
       <img src="../assets/alho.svg" alt="">
-      <h2 class="tituloCabecalho">Sistema CEASA</h2>
+      <h2 class="tituloCabecalho">Sistema Alho do Campo</h2>
     </div>
     <div class="funcionario coluna">
       <p>{{ store.estado.funcionario.nome }}</p>

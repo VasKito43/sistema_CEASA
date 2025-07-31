@@ -110,7 +110,7 @@ const cadastrar = async () => {
       type="number"
       min="1"
       step="1"
-      class="inputQuantidade inputQuant entrada-ml"
+      class="inputQuantidade inputQuant entrada-ml2"
     /><br>
 
     <label class="labelRV labelEnt entrada-ml">Valor Unitário</label>
@@ -120,7 +120,7 @@ const cadastrar = async () => {
       min="0"
       step="0.01"
       placeholder="R$ 0.00"
-      class="  inputVUentrada"
+      class="  inputVUentrada inputQuant entrada-ml inputQuantidade"
     /><br>
 
     <div v-if="erro" class="erro">{{ erro }}</div>
@@ -135,12 +135,18 @@ const cadastrar = async () => {
 </template>
 
 <style>
-
+@media (max-width: 768px){
+  .entrada-ml2{
+  margin-left: 3.4vw !important;
+}
+}
+.entrada-ml2{
+  margin-left: 2vw;
+}
 .entrada-ml{
 margin-left: 2vw;
 }
 .inputVUentrada{
   margin-left: 1.4vw;
-  width: 5vw;
 }
 </style>

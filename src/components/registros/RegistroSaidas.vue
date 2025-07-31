@@ -34,25 +34,25 @@
   </div>
 
   <div class="containerBP">
-    <div class="form2">
-      <h4>Buscar por texto:</h4>
+    <div class="form2 period-filter">
+      <h4 class="title-filter">Buscar por texto:</h4>
       <input
         type="text"
         v-model="filtroTexto"
         placeholder="Usuário, produto, vendedor ou cliente"
-        class="inputFormEstoque"
+        class="inputFormEstoque title-filter"
       />
     </div>
-    <div class="form2">
-     <h4>Local:</h4>
-     <select v-model="localFilter" class="inputFormEstoque">
+    <div class="form2 period-filter">
+     <h4 class="title-filter">Local:</h4>
+     <select v-model="localFilter" class="inputFormEstoque title-filter">
        <option :value="null">-- todos --</option>
        <option v-for="l in locais" :key="l" :value="l">{{ l }}</option>
      </select>
    </div>
-    <div class="form2">
-      <h4>Período:</h4>
-      <select v-model="periodType" @change="onPeriodChange" class="inputFormEstoque">
+    <div class="form2 period-filter">
+      <h4 class="title-filter">Período:</h4>
+      <select v-model="periodType" @change="onPeriodChange" class="inputFormEstoque title-filter">
         <option value="year">Ano</option>
         <option value="month">Mês</option>
         <option value="day">Dia</option>
@@ -62,14 +62,14 @@
         type="date"
         v-model="periodValue"
         @change="filtrarSaidas"
-        class="inputFormEstoque"
+        class="inputFormEstoque title-filter"
       />
       <input
         v-else-if="periodType === 'month'"
         type="month"
         v-model="periodValue"
         @change="filtrarSaidas"
-        class="inputFormEstoque"
+        class="inputFormEstoque title-filter"
       />
       <input
         v-else
@@ -79,7 +79,7 @@
         v-model="periodValue"
         @change="filtrarSaidas"
         placeholder="Ano"
-        class="inputFormEstoque"
+        class="inputFormEstoque title-filter"
       />
     </div>
   </div>
@@ -239,7 +239,27 @@ h5.campo span { font-weight:600; color:#fff; }
 .campo.destaque span { color:#4caf50; }
 .inputFormEstoque { padding:0.5rem; border:1px solid #ccc; border-radius:4px; }
 @media(max-width:768px) {
-  .itemEntrada { width:76vw; }
+  .itemEntrada { width:80vw; }
   .containerBP { flex-direction:column; }
+}
+@media (max-width: 768px) {
+  /* Faz o período ficar em coluna no mobile */
+  .period-filter {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .period-filter select,
+  .period-filter input {
+    width: 100%;
+  }
+  .title-filter{
+    margin-left: 2vw !important;
+  }
+}
+.form2 {
+  margin: 1em 0;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
 }
 </style>

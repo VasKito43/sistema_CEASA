@@ -246,7 +246,6 @@ const cadastrar = async () => {
 
 /* Estilo específico para select com busca */
 .select-search {
-  position: relative;
   padding: 0.5rem;
   border: 1px solid #007BFF;
   border-radius: 4px;
@@ -264,7 +263,7 @@ const cadastrar = async () => {
 
 @media (max-width: 768px) {
   .row {
-    width: 90vw;
+    width: 80vw;
   }
 }
 </style>

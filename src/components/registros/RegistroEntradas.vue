@@ -113,25 +113,25 @@ onMounted(() => {
   </div>
 
   <div class="containerBP">
-    <div class="form2">
-      <h4>Buscar por nome:</h4>
+    <div class="form2 period-filter">
+      <h4 class="title-filter">Buscar por nome:</h4>
       <input
         type="text"
         v-model="filtroTexto"
         placeholder="Nome de usuário ou produto"
-        class="inputFormEstoque"
+        class="inputFormEstoque title-filter"
       />
     </div>
-    <div class="form2">
-      <h4>Local:</h4>
-      <select v-model="localFilter" @change="" class="inputFormEstoque">
+    <div class="form2 period-filter">
+      <h4 class="title-filter">Local:</h4>
+      <select v-model="localFilter" @change="" class="inputFormEstoque title-filter">
         <option :value="null">-- todos --</option>
         <option v-for="l in locais" :key="l" :value="l">{{ l }}</option>
       </select>
     </div>
-    <div class="form2">
-      <h4>Filtrar por período:</h4>
-      <select v-model="periodType" @change="onPeriodChange" class="inputFormEstoque">
+    <div class="form2 period-filter">
+      <h4 class="title-filter">Período:</h4>
+      <select v-model="periodType" @change="onPeriodChange" class="inputFormEstoque title-filter">
         <option value="day">Dia</option>
         <option value="month">Mês</option>
         <option value="year">Ano</option>
@@ -140,13 +140,13 @@ onMounted(() => {
         v-if="periodType==='day'"
         type="date"
         v-model="periodValue"
-        class="inputFormEstoque"
+        class="inputFormEstoque title-filter"
       />
       <input
         v-else-if="periodType==='month'"
         type="month"
         v-model="periodValue"
-        class="inputFormEstoque"
+        class="inputFormEstoque title-filter"
       />
       <input
         v-else
@@ -155,7 +155,7 @@ onMounted(() => {
         max="2100"
         v-model="periodValue"
         placeholder="Ano"
-        class="inputFormEstoque"
+        class="inputFormEstoque title-filter"
       />
     </div>
   </div>
@@ -164,7 +164,7 @@ onMounted(() => {
 <style scoped>
 @media (max-width: 768px) {
   .inputFormEstoque { width: 50vw; }
-  .itemEntrada    { min-width: 76vw; }
+  .itemEntrada    { min-width: 78vw; }
 }
 
 .itemEntrada {
@@ -218,5 +218,18 @@ h5.campo.destaque span {
   gap: 0.5rem;
 }
 .inputFormEstoque { padding:0.5rem; border:1px solid #ccc; border-radius:4px; }
-
+@media (max-width: 768px) {
+  /* Faz o período ficar em coluna no mobile */
+  .period-filter {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .period-filter select,
+  .period-filter input {
+    width: 100%;
+  }
+  .title-filter{
+    margin-left: 2vw !important;
+  }
+}
 </style>

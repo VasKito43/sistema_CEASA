@@ -149,7 +149,7 @@ li{
   
 }
 .divPessoas::-webkit-scrollbar-track {
-  background: linear-gradient(to right, #ff0000ee, #960303d7);    color: white;
+  background: linear-gradient(to right, #3072c9ee, #0890ebd7);    color: white;
   border-radius: 4px;
 
 }
@@ -297,7 +297,7 @@ li{
 }
 
 .containerRV::-webkit-scrollbar-thumb {
-  background: linear-gradient(to right, #ff0000ee, #960303d7); 
+   background: linear-gradient(to right, #3072c9ee, #0890ebd7);
   border-radius: 10px;
   border: 2px solid #ffffff; 
 }
@@ -454,7 +454,7 @@ li{
 
 
 .pagina{
-  background: linear-gradient(to bottom right, #494949, #929292);
+  background: linear-gradient(to bottom right, #6d6c6c, #afaeae);
   width: 100vw;
   height: 100vh;
   font-family: Arial, Helvetica, sans-serif;
@@ -495,6 +495,7 @@ li{
   .botaoRV{
     padding: 0;
     max-height: 4.5vh;
+    min-height: 10vh !important;
     min-width: 35vw;
     font-size: 11pt;
   }
@@ -561,5 +562,6 @@ li{
     }
     .containerRV2{
       min-height: 15vh;
+      justify-content: center;
     }
     }

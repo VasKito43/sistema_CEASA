@@ -123,7 +123,7 @@ const deletarProduto = async (produto) => {
         <div v-else-if="erro" class="erro">{{ erro }}</div>
         <div v-else class="divPessoas">
             <ul class="ulEstoque">
-                <li v-for="produto in estoqueFiltradoOrdenado" :key="produto.id" class="itemEstoque ">
+                <li v-for="produto in estoqueFiltradoOrdenado" :key="produto.id" class="itemEstoque estoque-mt">
                     <label
                       class=""
                       :class="{
@@ -165,7 +165,7 @@ const deletarProduto = async (produto) => {
         <p class="risco">-</p>
         <div class="form2">
           <h4>Local:</h4>
-          <select v-model="localFilter" @change="filtraEstoque" class="inputFormEstoque selectBP inputFormBP">
+          <select v-model="localFilter" @change="filtraEstoque" class="inputFormEstoque selectBP inputFormBP ">
             <option :value="null">TODOS</option>
             <option value="CAMPO MOURÃO">CAMPO MOURÃO</option>
             <option value="MARINGÁ">MARINGÁ</option>
@@ -213,6 +213,13 @@ const deletarProduto = async (produto) => {
     margin-left: 15vw;
     min-width: 45vw;
 }
+.selectBP{
+  margin-left: 17vw !important;
+  max-width: 50vw;
+}
+}
+.estoque-mt{
+  padding-top: 1.5vh;
 }
 .itemEstoque{
   height: 25vh;

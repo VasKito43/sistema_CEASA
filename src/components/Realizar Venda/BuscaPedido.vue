@@ -307,7 +307,7 @@ h4 {
     width: 15vw;
     height: 4vh;
     background: white;
-    color: rgb(59, 59, 59);
+    color: rgb(90, 89, 89);
     border-radius: 10px;
     border: none;
     margin: 5px;

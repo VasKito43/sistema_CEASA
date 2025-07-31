@@ -436,6 +436,16 @@ onMounted(async () => {
   .select-search, .period-select, .period-input {
     width: 100%;
   }
+  .card{
+    min-width: 100% !important;
+  }
+  .extra-cards {
+  flex-direction: column;
+
+}
+.select-search{
+    min-width: 65vw !important;
+}
 }
 
 .extra-cards {
