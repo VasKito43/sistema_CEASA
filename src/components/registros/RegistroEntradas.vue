@@ -5,46 +5,74 @@ const entradas = ref([])
 const erro = ref(null)
 const loading = ref(true)
 
-// filtros
-const filtroTexto = ref("")      // nome de usuário ou produto
-const filtroData   = ref("")     // data de entrada (YYYY-MM-DD)
+// filtros texto e data
+const filtroTexto = ref('')
+const periodType   = ref('month')   // 'day' | 'month' | 'year'
+const periodValue  = ref('')
+const localFilter = ref(null)
+const locais = ['CAMPO MOURÃO', 'MARINGÁ']
+
 
 // formata ISO para pt-BR
 const formatDate = iso => new Date(iso).toLocaleDateString('pt-BR', {
   day: '2-digit', month: '2-digit', year: 'numeric'
 })
 
+// inicializa periodValue conforme tipo
+function onPeriodChange() {
+  if (periodType.value === 'day') {
+    periodValue.value = new Date().toISOString().slice(0,10)
+  } else if (periodType.value === 'month') {
+    periodValue.value = new Date().toISOString().slice(0,7)
+  } else {
+    periodValue.value = String(new Date().getFullYear())
+  }
+}
+
 // computa lista filtrada, enriquecida e ordenada
 const entradasFiltradasOrdenado = computed(() => {
   const txt = filtroTexto.value.toLowerCase()
-  const dt  = filtroData.value
+  const pv  = periodValue.value  // YYYY-MM-DD, YYYY-MM ou YYYY
 
   return entradas.value
-    .filter(item => {
-      const nomeUsuario = item.usuario_nome.toLowerCase()
-      const nomeProduto = item.produto_nome.toLowerCase()
-      const rawDate = new Date(item.data).toISOString().slice(0,10)
-
-      const textoMatch = !txt || nomeUsuario.includes(txt) || nomeProduto.includes(txt)
-      const dataMatch  = !dt || rawDate === dt
-      return textoMatch && dataMatch
-    })
     .map(item => {
       const valorUnit = item.valor != null ? parseFloat(item.valor) : 0
-      const quantidade = item.quantidade != null ? parseInt(item.quantidade) : 0
+      const qtd       = item.quantidade != null ? parseInt(item.quantidade) : 0
       return {
         ...item,
         valor: valorUnit,
-        total_entrada: valorUnit * quantidade
+        total_entrada: valorUnit * qtd
       }
+    })
+    .filter(item => {
+      if (localFilter.value && item.local !== localFilter.value) return false
+      // texto
+      const nomeUsuario = item.usuario_nome.toLowerCase()
+      const nomeProduto = item.produto_nome.toLowerCase()
+      const matchTxt = !txt || nomeUsuario.includes(txt) || nomeProduto.includes(txt)
+
+      // data flexível
+      const rawDate = new Date(item.data).toISOString().slice(0,10)
+      let matchDate = true
+      if (pv) {
+        if (periodType.value === 'day') {
+          matchDate = rawDate === pv
+        } else if (periodType.value === 'month') {
+          matchDate = rawDate.slice(0,7) === pv
+        } else { // year
+          matchDate = rawDate.slice(0,4) === pv
+        }
+      }
+      return matchTxt && matchDate
     })
     .sort((a, b) => new Date(b.data) - new Date(a.data))
 })
 
 // busca API
-const recebeEntradas = async () => {
+async function recebeEntradas() {
+  loading.value = true
   try {
-    const resp = await fetch('http://127.0.0.1:3000/recebeEntradas')
+    const resp = await fetch('https://backendvue.onrender.com/recebeEntradas')
     if (!resp.ok) throw new Error(`Erro HTTP ${resp.status}`)
     entradas.value = await resp.json()
   } catch (e) {
@@ -55,6 +83,7 @@ const recebeEntradas = async () => {
 }
 
 onMounted(() => {
+  onPeriodChange()
   recebeEntradas()
 })
 </script>
@@ -76,7 +105,7 @@ onMounted(() => {
           <h5 class="campo">Produto: <span>{{ item.produto_nome }}</span></h5>
           <h5 class="campo">Quantidade: <span>{{ item.quantidade }}</span></h5>
           <h5 class="campo">Valor Unitário: <span>R$ {{ item.valor.toFixed(2) }}</span></h5>
-          <h5 class="campo">Total da Entrada: <span>R$ {{ item.total_entrada.toFixed(2) }}</span></h5>
+          <h5 class="campo destaque">Total da Entrada: <span>R$ {{ item.total_entrada.toFixed(2) }}</span></h5>
           <h5 class="campo">Data: <span>{{ formatDate(item.data) }}</span></h5>
         </li>
       </ul>
@@ -94,10 +123,38 @@ onMounted(() => {
       />
     </div>
     <div class="form2">
-      <h4>Filtrar por data:</h4>
+      <h4>Local:</h4>
+      <select v-model="localFilter" @change="" class="inputFormEstoque">
+        <option :value="null">-- todos --</option>
+        <option v-for="l in locais" :key="l" :value="l">{{ l }}</option>
+      </select>
+    </div>
+    <div class="form2">
+      <h4>Filtrar por período:</h4>
+      <select v-model="periodType" @change="onPeriodChange" class="inputFormEstoque">
+        <option value="day">Dia</option>
+        <option value="month">Mês</option>
+        <option value="year">Ano</option>
+      </select>
       <input
+        v-if="periodType==='day'"
         type="date"
-        v-model="filtroData"
+        v-model="periodValue"
+        class="inputFormEstoque"
+      />
+      <input
+        v-else-if="periodType==='month'"
+        type="month"
+        v-model="periodValue"
+        class="inputFormEstoque"
+      />
+      <input
+        v-else
+        type="number"
+        min="2000"
+        max="2100"
+        v-model="periodValue"
+        placeholder="Ano"
         class="inputFormEstoque"
       />
     </div>
@@ -107,7 +164,7 @@ onMounted(() => {
 <style scoped>
 @media (max-width: 768px) {
   .inputFormEstoque { width: 50vw; }
-  .itemEntrada { min-width: 76vw; }
+  .itemEntrada    { min-width: 76vw; }
 }
 
 .itemEntrada {
@@ -142,6 +199,10 @@ h5.campo span {
   color: #fff;
 }
 
+h5.campo.destaque span {
+  color: #00e676;
+}
+
 .loading,
 .erro {
   font-size: 1.2em;
@@ -152,5 +213,10 @@ h5.campo span {
 
 .form2 {
   margin: 1em 0;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
 }
+.inputFormEstoque { padding:0.5rem; border:1px solid #ccc; border-radius:4px; }
+
 </style>

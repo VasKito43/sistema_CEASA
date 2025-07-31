@@ -13,7 +13,10 @@
           class="select-search"
           @change="fetchMetrics"
         >
-          <option :value="null">-- selecione --</option>
+        <option :value="null">-- selecione --</option>
+        <option value="CM">CM</option>
+        <option value="GERAL">GERAL</option>
+        <option value="FAMILIA">FAMILIA</option>
           <option
             v-for="v in sortedVendedores"
             :key="v.id"
@@ -65,6 +68,14 @@
         </div>
       </div>
 
+
+      <div v-if="vendedorSelecionado === 'CM' || vendedorSelecionado === 'GERAL'" class="extra-cards" style="margin-top:1.5rem;">
+        <div class="card extra">
+          <h3>Lucro Final</h3>
+          <p class="card-value">R$ {{ lucroFinal }}</p>
+        </div>
+      </div>
+
       <div v-if="vendedorSelecionado == 1" class="extra-cards">
        <div class="card extra">
          <h3>Lucro do Ronaldo</h3>
@@ -80,7 +91,7 @@
        </div>
      </div>
 
-     <!-- Cartões extras para vendedor 3 -->
+     <!-- Cartões extras para vendedor 3 e 7 -->
       <div v-if="vendedorSelecionado == 3" class="extra-cards">
         <div class="card extra">
           <h3>Lucro do Marcos (2%)</h3>
@@ -95,6 +106,36 @@
           </p>
         </div>
       </div>
+      <div v-if="vendedorSelecionado == 7" class="extra-cards">
+        <div class="card extra">
+          <h3>Lucro do Luís (2%)</h3>
+          <p class="card-value">
+            R$ {{ (Number(totalVendas) * 0.02).toFixed(2) }}
+          </p>
+        </div>
+        <div class="card extra">
+          <h3>Lucro Final</h3>
+          <p class="card-value">
+            R$ {{ (Number(lucro) - Number(totalVendas) * 0.02).toFixed(2) }}
+          </p>
+        </div>
+      </div>
+
+      <!-- Cartões extras para vendedor 6 -->
+    <div v-if="vendedorSelecionado == 6" class="extra-cards">
+      <div class="card extra">
+        <h3>Lucro do Bruno (50%)</h3>
+        <p class="card-value">
+          R$ {{ (Number(lucro) * 0.5).toFixed(2) }}
+        </p>
+      </div>
+      <div class="card extra">
+        <h3>Lucro Final</h3>
+        <p class="card-value">
+          R$ {{ (Number(lucro) - Number(lucro) * 0.5).toFixed(2) }}
+        </p>
+      </div>
+    </div>
 
 
       <!-- Filtros Inferiores -->
@@ -163,6 +204,7 @@ const formaPagamentoSelecionada = ref(null)
 // dados métricos
 const totalVendas = ref('0.00')
 const lucro       = ref('0.00')
+const lucroFinal  = ref('0.00')
 const numVendas   = ref(0)
 const loading     = ref(true)
 const erro        = ref(null)
@@ -179,10 +221,10 @@ const formas     = ref([])
 // Carrega vendors, produtos, clientes, formas
 async function fetchLists() {
   const [rv, rp, rc, rf] = await Promise.all([
-    fetch('http://127.0.0.1:3000/vendedores'),
-    fetch('http://127.0.0.1:3000/produtos'),
-    fetch('http://127.0.0.1:3000/clientes'),
-    fetch('http://127.0.0.1:3000/formas_pagamentos')
+    fetch('https://backendvue.onrender.com/vendedores'),
+    fetch('https://backendvue.onrender.com/produtos'),
+    fetch('https://backendvue.onrender.com/clientes'),
+    fetch('https://backendvue.onrender.com/formas_pagamentos')
   ])
   vendedores.value = await rv.json()
   produtos.value   = await rp.json()
@@ -208,6 +250,8 @@ const sortedClientes = computed(() =>
 )
 const sortedFormas = computed(() => formas.value)
 
+
+
 // inicializa periodValue e busca
 function onPeriodChange() {
   if (periodType.value === 'month') {
@@ -224,6 +268,99 @@ async function fetchMetrics() {
   loading.value = true
   erro.value    = null
   try {
+    if (vendedorSelecionado.value === 'FAMILIA') {
+    const idsFam = [4,5,8,9];
+    const resultadosF = await Promise.all(
+      idsFam.map(id => {
+        const p = new URLSearchParams({
+          periodType: periodType.value,
+          periodValue: periodValue.value,
+          vendedor: id
+        });
+        return fetch(`https://backendvue.onrender.com/lucros?${p}`)
+          .then(r => r.ok ? r.json() : Promise.reject(r));
+      })
+    );
+    // soma receitas e número de vendas
+    const receitaF = resultadosF.reduce((s, d) => s + d.receita, 0);
+    const vendasF  = resultadosF.reduce((s, d) => s + d.numVendas, 0);
+    // soma dos lucros originais (API)
+    const somaApiF = resultadosF.reduce((s, d) => s + d.lucro, 0);
+    // aqui não há ajuste especial: soma direta
+    const somaAjF = somaApiF;
+    totalVendas.value = receitaF.toFixed(2);
+    numVendas.value   = vendasF;
+    lucro.value       = somaAjF.toFixed(2);
+    lucroFinal.value  = somaApiF.toFixed(2);
+    loading.value     = false;
+    return;
+  }
+    if (vendedorSelecionado.value === 'GERAL') {
+      // ids a agregar
+      const idsGeral = [1,3,4,5,6,7,8,9];
+      const resultadosG = await Promise.all(
+        idsGeral.map(id => {
+          const p = new URLSearchParams({
+            periodType: periodType.value,
+            periodValue: periodValue.value,
+            vendedor: id
+          });
+          return fetch(`https://backendvue.onrender.com/lucros?${p}`)
+            .then(r => r.ok ? r.json() : Promise.reject(r));
+        })
+      );
+      // soma receitas e vendas
+      const receitaG = resultadosG.reduce((s, d) => s + d.receita, 0);
+      const vendasG  = resultadosG.reduce((s, d) => s + d.numVendas, 0);
+      // soma lucros originais
+      const somaApiG = resultadosG.reduce((s, d) => s + d.lucro, 0);
+      // soma lucros ajustados
+      const somaAjG = resultadosG.reduce((s, d, i) => {
+        const id = idsGeral[i];
+        let ajust = d.lucro;
+        if (id === 1) ajust = d.lucro / 3;            // 1/3 do lucro
+        else if (id === 3 || id === 7) ajust = d.lucro - d.receita * 0.02;
+        else if (id === 6) ajust = d.lucro / 2;
+        return s + ajust;
+      }, 0);
+      totalVendas.value = receitaG.toFixed(2);
+      numVendas.value   = vendasG;
+      lucroFinal.value       = somaAjG.toFixed(2);
+      lucro.value  = somaApiG.toFixed(2);
+      loading.value     = false;
+      return;
+    }
+    if (vendedorSelecionado.value === 'CM') {
+    const ids = [3,4,5,6,7,8,9]
+    const resultados = await Promise.all(ids.map(id => {
+      const p = new URLSearchParams({
+        periodType: periodType.value,
+        periodValue: periodValue.value,
+        vendedor: id
+      })
+      return fetch(`https://backendvue.onrender.com/lucros?${p}`)
+        .then(r => r.ok ? r.json() : Promise.reject(r))
+    }))
+    const receitaTotal = resultados.reduce((sum, d) => sum + d.receita, 0)
+    const numVendasSum = resultados.reduce((sum, d) => sum + d.numVendas, 0)
+    const somaLucroApi = resultados.reduce((sum, d) => sum + d.lucro, 0)
+    const somaLucroAjust  = resultados.reduce((sum, d, i) => {
+      const id = ids[i]
+      let ajustado = d.lucro
+      if (id === 6) {
+        ajustado = d.lucro / 2  // Bruno recebe metade do lucro
+      } else if (id === 7 || id === 3) {
+        ajustado = d.lucro - d.receita * 0.02  // reduz 2% da receita
+      }
+      return sum + ajustado
+    }, 0)
+    totalVendas.value = receitaTotal.toFixed(2)
+    numVendas.value   = numVendasSum
+    lucroFinal.value       = somaLucroAjust.toFixed(2)
+    lucro.value  = somaLucroApi.toFixed(2)
+    loading.value     = false
+    return
+  }
     const params = new URLSearchParams()
     params.append('periodType', periodType.value)
     params.append('periodValue', periodValue.value)
@@ -233,7 +370,7 @@ async function fetchMetrics() {
     if (formaPagamentoSelecionada.value) params.append('pagamento',  formaPagamentoSelecionada.value)
 
     console.log(vendedorSelecionado.value)
-    const res = await fetch(`http://127.0.0.1:3000/lucros?${params.toString()}`)
+    const res = await fetch(`https://backendvue.onrender.com/lucros?${params.toString()}`)
     if (!res.ok) {
       const errData = await res.json().catch(() => ({}))
       throw new Error(errData.details || errData.error || `HTTP ${res.status}`)

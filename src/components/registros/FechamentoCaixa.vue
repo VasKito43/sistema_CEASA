@@ -22,6 +22,9 @@
           @change="fetchClosing"
         >
           <option :value="null">-- selecione --</option>
+          <option value="CM">CM</option>
+          <option value="GERAL">GERAL</option>
+          <option value="FAMILIA">FAMILIA</option>
           <option
             v-for="v in sortedVendedores"
             :key="v.id"
@@ -34,6 +37,15 @@
 
       <!-- Valores por forma de pagamento -->
       <div class="metrics-cards">
+        <div
+          v-for="(métricas, id) in sellerMetrics"
+          :key="id"
+          class="card extra"
+        >
+          <h3>{{ getSellerName(id) }}</h3>
+          <p class="card-value">R$ {{ formatMoney(métricas.total) }}</p>
+          <p class="card-profit">Lucro: R$ {{ formatMoney(métricas.lucro) }}</p>
+        </div>
         <div
           v-for="(dados, forma) in valoresPorForma"
           :key="forma"
@@ -54,9 +66,15 @@
 </template>
 
 <script setup>
-import { ref, onMounted, computed } from 'vue'
+import { ref, onMounted, computed, watch  } from 'vue'
 import { jsPDF } from 'jspdf'
 import autoTable from 'jspdf-autotable'
+
+const groupMap = {
+  CM:      [4,5,6,7,8,9],
+  GERAL:   [1,3,4,5,6,7,8,9],
+  FAMILIA: [5,8,9]
+}
 
 // estado
 const loading = ref(true)
@@ -72,10 +90,19 @@ const valoresPorForma = ref({})
 const totalGeral = ref(0)
 const lucroGeral = ref(0)
 
+const sellerMetrics = ref({})     // ex: { '4': { total: xx, lucro: yy }, ... }
+
+function getSellerName(id) {
+  const numId = `${id}`
+  console.log(id)
+  const seller = vendedores.value.find(v => v.id === numId)
+  return seller ? seller.nome : `ID ${id}`
+}
+
 // carregamento de vendedores
 async function fetchVendedores() {
   try {
-    const res = await fetch('http://127.0.0.1:3000/vendedores')
+    const res = await fetch('https://backendvue.onrender.com/vendedores')
     if (!res.ok) throw new Error('Erro ao buscar vendedores')
     vendedores.value = await res.json()
   } catch (e) {
@@ -91,12 +118,42 @@ async function fetchClosing() {
   }
   loading.value = true
   erro.value = null
+  valoresPorForma.value = {}
+  sellerMetrics.value   = {}
+  totalGeral.value      = 0
+  lucroGeral.value      = 0
   try {
+    const isGroup = ['CM','GERAL','FAMILIA'].includes(vendedorSelecionado.value)
+    if (isGroup) {
+      // define arrays conforme cada grupo
+      const mapIds = {
+        CM:      [4,5,6,7,8,9],
+        GERAL:   [1,3,4,5,6,7,8,9],
+        FAMILIA: [5,8,9]
+      }[vendedorSelecionado.value]
+ 
+      // para cada id, busca métricas individualmente
+      await Promise.all(mapIds.map(async id => {
+        const p = new URLSearchParams({ date: dateValue.value, vendedor: id })
+        const r = await fetch(`https://backendvue.onrender.com/fechamento?${p.toString()}`)
+        const d = await r.json()
+        sellerMetrics.value[id] = {
+          total: parseFloat(d.totalGeral),
+          lucro: parseFloat(d.lucroGeral)
+        }
+      }))
+ 
+      // depois combinar tudo num total
+      totalGeral.value = Object.values(sellerMetrics.value).reduce((s,x)=> s + x.total,0)
+      lucroGeral.value = Object.values(sellerMetrics.value).reduce((s,x)=> s + x.lucro,0)
+      loading.value = false
+      return
+    }
     const params = new URLSearchParams({
       date: dateValue.value,
       vendedor: vendedorSelecionado.value
     })
-    const res = await fetch(`http://127.0.0.1:3000/fechamento?${params.toString()}`)
+    const res = await fetch(`https://backendvue.onrender.com/fechamento?${params.toString()}`)
     if (!res.ok) throw new Error(`HTTP ${res.status}`)
     const data = await res.json()
     // resposta: { valoresPorForma, totalGeral, lucroGeral }
@@ -123,27 +180,88 @@ function formatMoney(val) {
 }
 
 // PDF
-function generatePDF() {
-  const doc = new jsPDF({ orientation: 'landscape' })
-  const head = [['Forma','Recebido (R$)','Lucro (R$)']]
-  const body = Object.entries(valoresPorForma.value).map(([forma, d]) => [
-    forma,
-    d.total.toFixed(2),
-    d.lucro.toFixed(2)
-  ])
-  // adicionar totais no final
-  body.push([
-    'TOTAL GERAL',
-    totalGeral.value.toFixed(2),
-    lucroGeral.value.toFixed(2)
-  ])
+async function generatePDF() {
+  const doc = new jsPDF({ orientation: 'portrait' });
+  const chosen = vendedorSelecionado.value;
+
+  // mapa de grupos
+  const groupMap = {
+    CM:      [4,5,6,7,8,9],
+    GERAL:   [1,3,4,5,6,7,8,9],
+    FAMILIA: [5,8,9]
+  };
+
+  // 1) não é grupo: comportamento normal
+  if (!groupMap[chosen]) {
+    const head = [['Forma','Recebido','Lucro']];
+    const body = Object.entries(valoresPorForma.value)
+      .map(([f,d]) => [ f, d.total.toFixed(2), d.lucro.toFixed(2) ]);
+    body.push([ 'TOTAL GERAL', totalGeral.value.toFixed(2), lucroGeral.value.toFixed(2) ]);
+    autoTable(doc, { head, body, startY: 20, styles:{ fontSize:10 } });
+    doc.save(`fechamento_${dateValue.value}_${chosen}.pdf`);
+    return;
+  }
+
+  // 2) É grupo: gerar uma seção por vendedor
+  let y = 20;
+  for (const id of groupMap[chosen]) {
+    // busca fechamento individual
+    const res = await fetch(`https://backendvue.onrender.com/fechamento?date=${dateValue.value}&vendedor=${id}`);
+    const { valoresPorForma: vf, totalGeral: tg, lucroGeral: lg } = await res.json();
+
+    // título do vendedor
+    doc.setFontSize(12);
+    doc.text(`Vendedor: ${getSellerName(id)}`, 14, y);
+    y += 6;
+
+    // tabela do vendedor
+    const head = [['Forma','Recebido','Lucro']];
+    const body = Object.entries(vf)
+      .map(([f,d]) => [ f, d.total.toFixed(2), d.lucro.toFixed(2) ]);
+    body.push([ 'TOTAL', tg.toFixed(2), lg.toFixed(2) ]);
+
+    autoTable(doc, {
+      head, body,
+      startY: y,
+      styles: { fontSize: 8 }
+    });
+    y = doc.lastAutoTable.finalY + 7;
+    if (y > 260) {  // quebra de página
+      doc.addPage();
+      y = 20;
+    }
+  }
+
+  // 3) Tabela de TOTAL AGREGADO DO GRUPO
+  const totReceita = [], totLucro = [];
+  for (const id of groupMap[chosen]) {
+    const res = await fetch(`https://backendvue.onrender.com/fechamento?date=${dateValue.value}&vendedor=${id}`);
+    const { totalGeral: tg, lucroGeral: lg } = await res.json();
+    totReceita.push(tg);
+    totLucro.push(lg);
+  }
+  const sumReceita = totReceita.reduce((a,b) => a + b, 0);
+  const sumLucro   = totLucro.reduce((a,b) => a + b, 0);
+
+  let y2 = doc.lastAutoTable.finalY + 5;
+  
+  doc.setFontSize(12);
+  doc.text('TOTAL AGREGADO DO GRUPO', 14, y2);
+  y2 += 6;
+
   autoTable(doc, {
-    head,
-    body,
-    startY: 20,
-    styles: { fontSize: 10 },
-  })
-  doc.save(`fechamento_${dateValue.value}_${vendedorSelecionado.value}.pdf`)
+    head: [['','Receita (R$)','Lucro (R$)']],
+    body: [[ 
+      'TOTAL GRUPO', 
+      sumReceita.toFixed(2),
+      sumLucro.toFixed(2)
+    ]],
+    startY: y2,
+    styles: { fontSize: 10 }
+  });
+
+  // 4) Salvar
+  doc.save(`fechamento_${dateValue.value}_${chosen}.pdf`);
 }
 
 // on mount
@@ -151,6 +269,11 @@ onMounted(async () => {
   await fetchVendedores()
   await fetchClosing()
 })
+
+watch(vendedorSelecionado, () => {
+  fetchClosing()
+})
+
 </script>
 
 <style scoped>

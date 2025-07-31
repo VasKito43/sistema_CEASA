@@ -8,6 +8,7 @@ const loading = ref(true)
 const nome = ref("")
 const quantidadeMinima = ref("")
 const quantidade = ref("")
+const localFilter = ref(null)
 
 const estoqueFiltradoOrdenado = computed(() =>
   estoqueFiltrado.value.slice().sort((a, b) =>
@@ -17,7 +18,7 @@ const estoqueFiltradoOrdenado = computed(() =>
 
 const recebeEstoque = async () => {
   try {
-    const resposta = await fetch("http://127.0.0.1:3000/produtos")
+    const resposta = await fetch("https://backendvue.onrender.com/produtos")
     if (!resposta.ok) {
       throw new Error("Erro ao realizar busca")
     }
@@ -36,6 +37,7 @@ recebeEstoque()
 const filtraEstoque = () => {
   const quantidadeMin = parseFloat(quantidadeMinima.value)
   const quantidadeMax = parseFloat(quantidade.value)
+  const selectedLocal = localFilter.value
 
   estoqueFiltrado.value = estoque.value.filter((produto) => {
     const nomeMatch = produto.nome.toLowerCase().includes(nome.value.toLowerCase())
@@ -47,8 +49,9 @@ const filtraEstoque = () => {
       !isNaN(quantidadeMax) && quantidade.value !== ""
         ? produto.quantidade <= quantidadeMax
         : true
+    const localMatch = !selectedLocal || produto.local === selectedLocal
 
-    return nomeMatch && quantidadeMinMatch && quantidadeMaxMatch
+    return nomeMatch && quantidadeMinMatch && quantidadeMaxMatch && localMatch
   })
 }
 
@@ -56,7 +59,7 @@ const atualizarProduto = async (produto) => {
     loading.value = true
 
     try {
-        const resposta = await fetch(`http://127.0.0.1:3000/produtos/${produto.id}`, {
+        const resposta = await fetch(`https://backendvue.onrender.com/produtos/${produto.id}`, {
             method: "PUT",
             headers: {
                 "Content-Type": "application/json",
@@ -92,7 +95,7 @@ const deletarProduto = async (produto) => {
     loading.value = true
 
     try {
-        const resposta = await fetch(`http://127.0.0.1:3000/produtos/${produto.id}`, {
+        const resposta = await fetch(`https://backendvue.onrender.com/produtos/${produto.id}`, {
             method: "DELETE"
         });
 
@@ -121,6 +124,15 @@ const deletarProduto = async (produto) => {
         <div v-else class="divPessoas">
             <ul class="ulEstoque">
                 <li v-for="produto in estoqueFiltradoOrdenado" :key="produto.id" class="itemEstoque ">
+                    <label
+                      class=""
+                      :class="{
+                        'local-campo': produto.local === 'CAMPO MOURÃO',
+                        'local-maringa': produto.local === 'MARINGÁ'
+                      }"
+                    >
+                      {{ produto.local }}
+                    </label>
                     <br>
                     <label class="labelEstoque labelNome">Nome</label>
                     <input v-model="produto.nome" placeholder="Nome" class="inputEstoque"/><br>
@@ -150,12 +162,16 @@ const deletarProduto = async (produto) => {
         </div>
     
         <div class="form1 coluna">
-          <p class="risco">-</p>
-          <div class="form2">
-            <h4>Quantidade: </h4>
-            <input type="number" v-model="quantidadeMinima" @input="filtraEstoque" placeholder="Quantidade Mínima do Produto" class="inputFormEstoque valorFormEstoque">
-          </div>
+        <p class="risco">-</p>
+        <div class="form2">
+          <h4>Local:</h4>
+          <select v-model="localFilter" @change="filtraEstoque" class="inputFormEstoque selectBP inputFormBP">
+            <option :value="null">TODOS</option>
+            <option value="CAMPO MOURÃO">CAMPO MOURÃO</option>
+            <option value="MARINGÁ">MARINGÁ</option>
+          </select>
         </div>
+      </div>
 
     
         <div class="form1 coluna">
@@ -218,5 +234,14 @@ const deletarProduto = async (produto) => {
     padding: 1vh;
 }
 
+.local-campo {
+    margin-left: 10px;
+  color: #f44336; /* vermelho */
+}
+
+.local-maringa {
+    margin-left: 10px;
+  color: #2196f3; /* azul */
+}
 
 </style>

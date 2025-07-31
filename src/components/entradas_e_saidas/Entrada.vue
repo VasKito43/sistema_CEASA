@@ -2,6 +2,8 @@
 import { ref, onMounted, computed } from 'vue'
 import { useStore } from '../../store'
 
+const localSelecionado = ref(null)
+
 const store = useStore()
 
 const produtos = ref([])
@@ -12,17 +14,25 @@ const produtoSelecionado = ref(null)
 const quantidade         = ref(1)
 const valorUnitario      = ref('')   // <- novo
 
-const sortedProdutos = computed(() =>
-  produtos.value.slice().sort((a, b) =>
+
+const locais = computed(() =>
+  Array.from(new Set(produtos.value.map(p => p.local)))
+)
+
+const sortedProdutos = computed(() => {
+  const base = produtos.value.slice().sort((a, b) => 
     a.nome.localeCompare(b.nome, 'pt', { sensitivity: 'base' })
   )
-)
+  if (!localSelecionado.value) return base
+  return base.filter(p => p.local === localSelecionado.value)
+})
 
 async function fetchProdutos() {
   try {
-    const res = await fetch('http://127.0.0.1:3000/produtos')
+    const res = await fetch('https://backendvue.onrender.com/produtos')
     if (!res.ok) throw new Error('Erro ao buscar produtos')
     produtos.value = await res.json()
+    localSelecionado.value = null
   } catch (e) {
     erro.value = e.message
   } finally {
@@ -50,7 +60,7 @@ const cadastrar = async () => {
   }
 
   try {
-    const res = await fetch('http://127.0.0.1:3000/realizarEntrada', {
+    const res = await fetch('https://backendvue.onrender.com/realizarEntrada', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(entrada)
@@ -77,6 +87,11 @@ const cadastrar = async () => {
   <h2>Entrada de Produto</h2>
 
   <div class="containerRV">
+    <!-- filtro de local -->
+    <select v-model="localSelecionado" class="selectProduto">
+      <option :value="null">Todos os Locais</option>
+      <option v-for="loc in locais" :key="loc" :value="loc">{{ loc }}</option>
+    </select><br>
     <select v-model="produtoSelecionado" class="selectProduto">
       <option :value="null">Selecione um produto</option>
       <option

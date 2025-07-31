@@ -44,6 +44,13 @@
       />
     </div>
     <div class="form2">
+     <h4>Local:</h4>
+     <select v-model="localFilter" class="inputFormEstoque">
+       <option :value="null">-- todos --</option>
+       <option v-for="l in locais" :key="l" :value="l">{{ l }}</option>
+     </select>
+   </div>
+    <div class="form2">
       <h4>Período:</h4>
       <select v-model="periodType" @change="onPeriodChange" class="inputFormEstoque">
         <option value="year">Ano</option>
@@ -82,6 +89,9 @@
 import { ref, computed, onMounted } from 'vue'
 import { jsPDF } from 'jspdf'
 import autoTable from 'jspdf-autotable'
+
+const localFilter = ref(null)
+const locais = ['CAMPO MOURÃO', 'MARINGÁ']
 
 // estado
 const saidas = ref([])
@@ -144,6 +154,7 @@ const saidasFiltradasOrdenado = computed(() => {
       }
     })
     .filter(item => {
+      if (localFilter.value && item.produto_local !== localFilter.value) return false
       const txt = filtroTexto.value.toLowerCase()
       const rawDate = parseDateUTC(item.data)
         .toISOString()
@@ -171,7 +182,7 @@ const saidasFiltradasOrdenado = computed(() => {
 async function recebeSaidas() {
   loading.value = true
   try {
-    const resp = await fetch('http://127.0.0.1:3000/recebeSaidas')
+    const resp = await fetch('https://backendvue.onrender.com/recebeSaidas')
     if (!resp.ok) throw new Error(`Erro HTTP ${resp.status}`)
     saidas.value = await resp.json()
   } catch (e) {

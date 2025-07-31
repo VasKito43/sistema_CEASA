@@ -10,7 +10,7 @@ const cadastrar = async () => {
   };
 
   try {
-    const resposta = await fetch("http://127.0.0.1:3000/clientes", {
+    const resposta = await fetch("https://backendvue.onrender.com/clientes", {
       method: "POST",
       headers: {
         "Content-Type": "application/json"

@@ -20,6 +20,15 @@ const descricao = ref('')
 const valorCusto = ref(null)
 const valorVenda = ref(null)
 
+
+const localFilter = ref(null)
+const locais = ['CAMPO MOURÃO', 'MARINGÁ']
+const filteredProdutos = computed(() =>
+  sortedProdutos.value.filter(p =>
+    !localFilter.value || p.local === localFilter.value
+  ))
+
+
 // Sorted lists
 const sortedProdutos = computed(() =>
   produtos.value.slice().sort((a, b) => a.nome.localeCompare(b.nome, 'pt', { sensitivity: 'base' }))
@@ -39,22 +48,22 @@ const selectedProdutoObj = computed(() =>
 
 // Fetch functions
 async function fetchProdutos() {
-  const res = await fetch('http://127.0.0.1:3000/produtos')
+  const res = await fetch('https://backendvue.onrender.com/produtos')
   if (!res.ok) throw new Error('Erro ao buscar produtos')
   produtos.value = await res.json()
 }
 async function fetchVendedores() {
-  const res = await fetch('http://127.0.0.1:3000/vendedores')
+  const res = await fetch('https://backendvue.onrender.com/vendedores')
   if (!res.ok) throw new Error('Erro ao buscar vendedores')
   vendedores.value = await res.json()
 }
 async function fetchClientes() {
-  const res = await fetch('http://127.0.0.1:3000/clientes')
+  const res = await fetch('https://backendvue.onrender.com/clientes')
   if (!res.ok) throw new Error('Erro ao buscar clientes')
   clientes.value = await res.json()
 }
 async function fetchFormas() {
-  const res = await fetch('http://127.0.0.1:3000/formas_pagamentos')
+  const res = await fetch('https://backendvue.onrender.com/formas_pagamentos')
   if (!res.ok) throw new Error('Erro ao buscar formas de pagamento')
   formasPagamento.value = await res.json()
 }
@@ -113,7 +122,7 @@ const cadastrar = async () => {
   }
 
   try {
-    const res = await fetch('http://127.0.0.1:3000/realizarSaida', {
+    const res = await fetch('https://backendvue.onrender.com/realizarSaida', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(saida)
@@ -148,11 +157,19 @@ const cadastrar = async () => {
     <div v-if="loading">Carregando...</div>
     <div v-else-if="erro" class="erro">{{ erro }}</div>
     <div v-else>
+      <!-- select de local -->
+      <div class="row">
+        <label>Local</label>
+        <select v-model="localFilter" class="select-search">
+          <option :value="null">-- todos --</option>
+          <option v-for="l in locais" :key="l" :value="l">{{ l }}</option>
+        </select>
+      </div>
       <div class="row">
         <label>Produto</label>
         <select v-model="produtoSelecionado" class="select-search">
           <option :value="null">-- selecione --</option>
-          <option v-for="p in sortedProdutos" :key="p.id" :value="p.id">{{ p.nome }}</option>
+          <option v-for="p in filteredProdutos" :key="p.id" :value="p.id">{{ p.nome }}</option>
         </select>
       </div>
       <div class="row">
