@@ -7,13 +7,40 @@
     <div v-else>
       <!-- Filtros -->
       <div class="filter-row">
-        <label class="filter-label">Data</label>
-        <input
-          v-model="dateValue"
-          type="date"
-          class="inputFormBP"
-          @change="fetchClosing"
-        />
+        <label class="filter-label period-label">Período</label>
+     <select
+       v-model="periodType"
+       @change="onPeriodChange"
+       class="inputFormBP period-select"
+     >
+       <option value="day">Dia</option>
+       <option value="month">Mês</option>
+       <option value="year">Ano</option>
+     </select>
+     <input
+       v-if="periodType==='day'"
+       v-model="periodValue"
+       type="date"
+       class="period-input"
+       @change="fetchClosing"
+     />
+     <input
+       v-else-if="periodType==='month'"
+       v-model="periodValue"
+       type="month"
+       class="period-input"
+       @change="fetchClosing"
+     />
+     <input
+       v-else
+       v-model="periodValue"
+       type="number"
+       min="2000"
+       max="2100"
+       placeholder="Ano"
+       class="period-input"
+       @change="fetchClosing"
+     />
 
         <label class="filter-label">Vendedor</label>
         <select
@@ -70,6 +97,10 @@ import { ref, onMounted, computed, watch  } from 'vue'
 import { jsPDF } from 'jspdf'
 import autoTable from 'jspdf-autotable'
 
+const periodType  = ref('day')
+const periodValue = ref(new Date().toISOString().slice(0,10))
+
+
 const groupMap = {
   CM:      [4,5,6,7,8,9],
   GERAL:   [1,3,4,5,6,7,8,9],
@@ -99,6 +130,17 @@ function getSellerName(id) {
   return seller ? seller.nome : `ID ${id}`
 }
 
+function onPeriodChange() {
+  if (periodType.value === 'day') {
+    periodValue.value = new Date().toISOString().slice(0,10)  // YYYY-MM-DD
+  } else if (periodType.value === 'month') {
+    periodValue.value = new Date().toISOString().slice(0,7)   // YYYY-MM
+  } else {
+    periodValue.value = String(new Date().getFullYear())      // YYYY
+  }
+  fetchClosing()
+}
+
 // carregamento de vendedores
 async function fetchVendedores() {
   try {
@@ -112,7 +154,7 @@ async function fetchVendedores() {
 
 // busca fechamento de caixa
 async function fetchClosing() {
-  if (!dateValue.value || !vendedorSelecionado.value) {
+  if ((!periodValue.value && periodType.value !== 'day') || !vendedorSelecionado.value) {
     loading.value = false
     return
   }
@@ -122,19 +164,27 @@ async function fetchClosing() {
   sellerMetrics.value   = {}
   totalGeral.value      = 0
   lucroGeral.value      = 0
+
+  // monta os parâmetros de query
+  const params = new URLSearchParams({
+    periodType:  periodType.value,     // 'day' | 'month' | 'year'
+    periodValue: periodValue.value,    // 'YYYY-MM-DD' or 'YYYY-MM' or 'YYYY'
+    vendedor:    vendedorSelecionado.value
+  })
+  const res = await fetch(`https://backendvue.onrender.com/fechamento?${params.toString()}`)
+
   try {
     const isGroup = ['CM','GERAL','FAMILIA'].includes(vendedorSelecionado.value)
     if (isGroup) {
-      // define arrays conforme cada grupo
       const mapIds = {
         CM:      [4,5,6,7,8,9],
         GERAL:   [1,3,4,5,6,7,8,9],
         FAMILIA: [5,8,9]
       }[vendedorSelecionado.value]
- 
-      // para cada id, busca métricas individualmente
+
       await Promise.all(mapIds.map(async id => {
-        const p = new URLSearchParams({ date: dateValue.value, vendedor: id })
+        const p = new URLSearchParams(params)  // herda date ou period...
+        p.set('vendedor', id)
         const r = await fetch(`https://backendvue.onrender.com/fechamento?${p.toString()}`)
         const d = await r.json()
         sellerMetrics.value[id] = {
@@ -142,30 +192,27 @@ async function fetchClosing() {
           lucro: parseFloat(d.lucroGeral)
         }
       }))
- 
-      // depois combinar tudo num total
-      totalGeral.value = Object.values(sellerMetrics.value).reduce((s,x)=> s + x.total,0)
-      lucroGeral.value = Object.values(sellerMetrics.value).reduce((s,x)=> s + x.lucro,0)
+
+      totalGeral.value = Object.values(sellerMetrics.value).reduce((s,x)=> s + x.total, 0)
+      lucroGeral.value = Object.values(sellerMetrics.value).reduce((s,x)=> s + x.lucro, 0)
       loading.value = false
       return
     }
-    const params = new URLSearchParams({
-      date: dateValue.value,
-      vendedor: vendedorSelecionado.value
-    })
+
     const res = await fetch(`https://backendvue.onrender.com/fechamento?${params.toString()}`)
     if (!res.ok) throw new Error(`HTTP ${res.status}`)
     const data = await res.json()
-    // resposta: { valoresPorForma, totalGeral, lucroGeral }
     valoresPorForma.value = data.valoresPorForma || {}
-    totalGeral.value = parseFloat(data.totalGeral) || 0
-    lucroGeral.value = parseFloat(data.lucroGeral) || 0
+    totalGeral.value      = parseFloat(data.totalGeral)  || 0
+    lucroGeral.value      = parseFloat(data.lucroGeral)  || 0
+
   } catch (e) {
     erro.value = e.message
   } finally {
     loading.value = false
   }
 }
+
 
 // ordenação
 const sortedVendedores = computed(() =>
@@ -260,6 +307,7 @@ async function generatePDF() {
   doc.save(`fechamento_${dateValue.value}_${vendedorSelecionado.value}.pdf`)
 }
 
+onPeriodChange()
 
 // on mount
 onMounted(async () => {
@@ -270,7 +318,7 @@ onMounted(async () => {
 watch(vendedorSelecionado, () => {
   fetchClosing()
 })
-
+watch(periodType, onPeriodChange, { immediate: true })
 </script>
 
 <style scoped>
@@ -337,6 +385,7 @@ watch(vendedorSelecionado, () => {
   margin: 2rem 0;
   color: #666;
 }
+
 @media(max-width:768px) {
   .filter-row,
   .metrics-cards {

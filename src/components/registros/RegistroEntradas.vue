@@ -14,9 +14,13 @@ const locais = ['CAMPO MOURÃO', 'MARINGÁ']
 
 
 // formata ISO para pt-BR
-const formatDate = iso => new Date(iso).toLocaleDateString('pt-BR', {
-  day: '2-digit', month: '2-digit', year: 'numeric'
-})
+const formatDate = iso => {
+  const d = new Date(iso)
+  d.setDate(d.getDate() + 1)      // adiciona um dia
+  return d.toLocaleDateString('pt-BR', {
+    day: '2-digit', month: '2-digit', year: 'numeric'
+  })
+}
 
 // inicializa periodValue conforme tipo
 function onPeriodChange() {
