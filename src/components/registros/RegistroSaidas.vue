@@ -41,7 +41,11 @@
               <h5 class="campo destaque">
                 Lucro da Saída: <span>R$ {{ item.lucro_saida.toFixed(2) }}</span>
               </h5>
-              <button @click="editar(item)" class="btnEdit">✎</button>
+
+              <div class="item-actions">
+                <button @click="editar(item)" class="btnEdit">✎</button>
+                <button @click="confirmDelete(item)" class="btnDelete">🗑️</button>
+              </div>
             </li>
           </ul>
         </li>
@@ -51,8 +55,9 @@
       <div v-if="editItem" class="modalEdit">
         <div class="modalContent">
           <h3>Editando Saída #{{ editItem.id }}</h3>
+
           <div class="row">
-            <label>Local do Produto</label>
+            <label>Local do Produto (filtra produtos)</label>
             <select v-model="editLocalFilter" class="select-search">
               <option :value="null">-- todos --</option>
               <option v-for="l in locais" :key="l" :value="l">{{ l }}</option>
@@ -66,34 +71,50 @@
                 <option v-for="p in filteredProdutosEdit" :key="p.id" :value="p.id">{{ p.nome }}</option>
               </select>
            </div>
+
           <div class="row">
             <label>Quantidade</label>
-            <input type="number" v-model="editForm.quantidade" />
+            <input type="number" v-model.number="editForm.quantidade" min="1" />
           </div>
+
+          <div class="row">
+            <label>Valor de Custo</label>
+            <input type="number" v-model.number="editForm.valor_custo" step="0.01" />
+          </div>
+
           <div class="row">
             <label>Valor de Venda</label>
-            <input type="number" v-model="editForm.valor_venda" step="0.01" />
+            <input type="number" v-model.number="editForm.valor_venda" step="0.01" />
           </div>
+
           <div class="row">
              <label>Data</label>
              <input type="date" v-model="editForm.data" />
            </div>
+
+          <div class="row">
+            <label>Vendedor</label>
+            <select v-model="editForm.vendedorId">
+              <option :value="null">-- selecione --</option>
+              <option v-for="v in sortedVendedores" :key="v.id" :value="v.id">{{ v.nome }}</option>
+            </select>
+          </div>
+
            <div class="row">
              <label>Forma de Pagamento</label>
               <select v-model="editForm.id_forma_pagamento">
                 <option :value="null">-- selecione --</option>
-
                 <option
                   v-for="f in sortedFormas"
                   :key="f.id"
                   :value="f.id"
-                  :selected="f.id === editForm.id_forma_pagamento"
                 >{{ f.nome }}</option>
               </select>
            </div>
+
           <div class="actions">
             <button @click="salvarEdicao" class="botaoSalvar">Salvar</button>
-            <button @click="editItem = null" class="botaoCancelar">Cancelar</button>
+            <button @click="cancelEdit" class="botaoCancelar">Cancelar</button>
           </div>
         </div>
       </div>
@@ -157,18 +178,17 @@
   </div>
 </template>
 
-
-
 <script setup>
 import { ref, computed, onMounted, reactive } from 'vue'
 import { jsPDF } from 'jspdf'
 import autoTable from 'jspdf-autotable'
 import { groupBy } from 'lodash'
 
+const API_BASE = 'https://backendvue.onrender.com' // ajuste se necessário
+
 const localFilter = ref(null)
 const locais = ['CAMPO MOURÃO', 'MARINGÁ']
 const editLocalFilter = ref(null)
-
 
 // estado
 const saidas = ref([])
@@ -179,6 +199,11 @@ const loading = ref(true)
 const filtroTexto = ref('')
 const periodType  = ref('month')
 const periodValue = ref('')
+
+// dados auxiliares
+const produtos = ref([])
+const formasPagamento = ref([])
+const vendedores = ref([])
 
 // parse e formatação de data
 function parseDateUTC(iso) {
@@ -193,22 +218,15 @@ function formatDate(iso) {
   const year = d.getFullYear()
   return `${day}/${month}/${year}`
 }
-
 function formatDateISO(iso) {
   return new Date(iso).toISOString().slice(0,10)
 }
-
-// helper moeda
 function formatMoney(val) {
   return `R$ ${val.toFixed(2)}`
 }
 
-// filtra apenas altera o período
-function filtrarSaidas() {
-  // nenhuma ação além de disparar recompute
-}
+function filtrarSaidas() { /* recompute automatico via computed */ }
 
-// inicializa periodValue
 function onPeriodChange() {
   if (periodType.value === 'day') {
     periodValue.value = new Date().toISOString().slice(0,10)
@@ -219,108 +237,128 @@ function onPeriodChange() {
   }
 }
 
+/* ---------------------------
+   GRUPOS / EDIÇÃO / AÇÕES
+   --------------------------- */
 const gruposPorCliente = computed(() => {
-  // primeiro computa a lista plana enriquecida como antes
   const lista = saidasFiltradasOrdenado.value
-
-  // agrupamos por chave única: `${cliente}_${YYYY-MM-DD}`
   const mapa = groupBy(lista, item => {
-    const d = formatDateISO(item.data)  // garante YYYY-MM-DD
+    const d = formatDateISO(item.data)
     return `${item.cliente_nome}__${d}`
   })
-
-  // transformamos de volta num array de grupos:
   return Object.entries(mapa).map(([chave, itens]) => {
     const [cliente_nome, data] = chave.split('__')
     return { cliente_nome, data, itens }
   })
 })
 
-
-const editItem = ref(null)        // a saída que está sendo editada
+const editItem = ref(null)
 const editForm = reactive({
   produtoId: null,
   quantidade: 0,
   valor_custo: 0,
   valor_venda: 0,
   data: '',
-  id_forma_pagamento: null
+  id_forma_pagamento: null,
+  vendedorId: null
 })
 
+function cancelEdit() {
+  editItem.value = null
+  // limpa filtro local edit
+  editLocalFilter.value = null
+}
+
 async function editar(item) {
-  // garante que temos as formas pra popular o select
-  if (formasPagamento.value.length === 0) {
-    await fetchFormas()
-  }
+  // garante que temos produtos/formas/vendedores carregados
+  if (produtos.value.length === 0) await fetchProdutos()
+  if (formasPagamento.value.length === 0) await fetchFormas()
+  if (vendedores.value.length === 0) await fetchVendedores()
 
   editItem.value = item
-  console.log(item)
   Object.assign(editForm, {
     produtoId: item.produto_id,
     quantidade: item.quantidade,
     valor_custo: item.valor_custo,
     valor_venda: item.valor_venda,
-    data: formatDateISO(item.data), // YYYY-MM-DD
-    id_forma_pagamento: item.forma_pagamento_id
+    data: formatDateISO(item.data),
+    id_forma_pagamento: item.forma_pagamento_id,
+    vendedorId: item.vendedor_id
   })
+  // set local filter to the product's local to make product select show correctly
+  editLocalFilter.value = item.produto_local || null
 }
 
-
 async function salvarEdicao() {
-  if (!editItem.value) return;
-  // 1) Validações
+  if (!editItem.value) return
+  // validações locais (sem fazer fetch)
   if (
     editForm.produtoId == null ||
     editForm.id_forma_pagamento == null ||
+    editForm.vendedorId == null ||
     editForm.quantidade < 1 ||
     editForm.valor_custo == null || isNaN(editForm.valor_custo) ||
     editForm.valor_venda == null || isNaN(editForm.valor_venda) ||
     !editForm.data
   ) {
-    alert('Preencha todos os campos obrigatórios corretamente');
-    return;
+    alert('Preencha todos os campos obrigatórios corretamente')
+    return
   }
 
   try {
-    // 2) Monta o payload para o back-end
     const payload = {
       produtoId_antigo:   editItem.value.produto_id,
-      produtoId_novo:     editForm.produtoId,            // string UUID
+      produtoId_novo:     editForm.produtoId,
       quantidade_antiga:  editItem.value.quantidade,
       quantidade_nova:    editForm.quantidade,
       valor_custo:        +editForm.valor_custo,
       valor_venda:        +editForm.valor_venda,
       data:               editForm.data,
-      id_forma_pagamento: editForm.id_forma_pagamento,  // string UUID
+      id_forma_pagamento: editForm.id_forma_pagamento,
+      vendedorId:         editForm.vendedorId
     }
 
-    // 3) Chama o endpoint
-    const res = await fetch(
-      `https://backendvue.onrender.com/atualizarSaida/${editItem.value.id}`,
-      {
-        method:  'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body:    JSON.stringify(payload)
-      }
-    );
+    const res = await fetch(`${API_BASE}/atualizarSaida/${editItem.value.id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    })
 
     if (!res.ok) {
-      const err = await res.json().catch(() => ({}));
-      throw new Error(err.error || 'Falha ao salvar edição');
+      const err = await res.json().catch(() => ({}))
+      throw new Error(err.error || 'Falha ao salvar edição')
     }
 
-    // 4) Sucesso
-    alert('Saída atualizada com sucesso!');
-    editItem.value = null;
-    await recebeSaidas();  // recarrega a lista de saídas
-
+    alert('Saída atualizada com sucesso!')
+    editItem.value = null
+    await recebeSaidas()
   } catch (e) {
-    console.error(e);
-    alert(`Erro: ${e.message}`);
+    console.error('Erro ao atualizar saída:', e)
+    alert(`Erro ao atualizar saída: ${e.message}`)
   }
 }
 
-// dados enriquecidos e filtrados
+/* ---- exclusão com confirmação ---- */
+async function confirmDelete(item) {
+  const ok = confirm(`Confirma exclusão da saída #${item.id} — produto: ${item.produto_nome}, qtd: ${item.quantidade}?`)
+  if (!ok) return
+  try {
+    const res = await fetch(`${API_BASE}/deletarSaida/${item.id}`, { method: 'DELETE' })
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}))
+      throw new Error(err.error || `Erro ao deletar (HTTP ${res.status})`)
+    }
+    alert('Saída excluída com sucesso.')
+    await recebeSaidas()
+  } catch (e) {
+    console.error('Erro ao excluir saída:', e)
+    alert(`Erro ao excluir: ${e.message}`)
+  }
+}
+
+/* ---------------------------
+   FILTROS / LISTAGEM / DATA
+   --------------------------- */
 const saidasFiltradasOrdenado = computed(() => {
   return saidas.value
     .map(item => {
@@ -360,11 +398,13 @@ const saidasFiltradasOrdenado = computed(() => {
     .sort((a,b) => parseDateUTC(b.data) - parseDateUTC(a.data))
 })
 
-// busca no back
+/* ---------------------------
+   FETCH / DATA LOADING
+   --------------------------- */
 async function recebeSaidas() {
   loading.value = true
   try {
-    const resp = await fetch('https://backendvue.onrender.com/recebeSaidas')
+    const resp = await fetch(`${API_BASE}/recebeSaidas`)
     if (!resp.ok) throw new Error(`Erro HTTP ${resp.status}`)
     saidas.value = await resp.json()
   } catch (e) {
@@ -374,30 +414,21 @@ async function recebeSaidas() {
   }
 }
 
-const produtos = ref([])
-const formasPagamento = ref([])
-
 async function fetchProdutos() {
-  const res = await fetch('https://backendvue.onrender.com/produtos')
+  const res = await fetch(`${API_BASE}/produtos`)
   if (!res.ok) throw new Error('Erro ao buscar produtos')
   produtos.value = await res.json()
 }
 async function fetchFormas() {
-  const res = await fetch('https://backendvue.onrender.com/formas_pagamentos')
+  const res = await fetch(`${API_BASE}/formas_pagamentos`)
   if (!res.ok) throw new Error('Erro ao buscar formas de pagamento')
   formasPagamento.value = await res.json()
 }
-
-const filteredProdutos = computed(() =>
-  produtos.value.slice().sort((a, b) =>
-    a.nome.localeCompare(b.nome, 'pt', { sensitivity: 'base' })
-  )
-)
-const sortedFormas = computed(() =>
-  formasPagamento.value.slice().sort((a, b) =>
-    a.nome.localeCompare(b.nome, 'pt', { sensitivity: 'base' })
-  )
-)
+async function fetchVendedores() {
+  const res = await fetch(`${API_BASE}/vendedores`)
+  if (!res.ok) throw new Error('Erro ao buscar vendedores')
+  vendedores.value = await res.json()
+}
 
 const filteredProdutosEdit = computed(() =>
   produtos.value
@@ -405,21 +436,25 @@ const filteredProdutosEdit = computed(() =>
     .sort((a, b) => a.nome.localeCompare(b.nome, 'pt', { sensitivity: 'base' }))
 )
 
+const sortedFormas = computed(() =>
+  formasPagamento.value.slice().sort((a, b) => a.nome.localeCompare(b.nome, 'pt', { sensitivity: 'base' }))
+)
+const sortedVendedores = computed(() =>
+  vendedores.value.slice().sort((a, b) => a.nome.localeCompare(b.nome, 'pt', { sensitivity: 'base' }))
+)
 
 onMounted(async () => {
   onPeriodChange()
   try {
-    await Promise.all([
-      fetchProdutos(),
-      fetchFormas(),
-      recebeSaidas()
-    ])
+    await Promise.all([fetchProdutos(), fetchFormas(), fetchVendedores(), recebeSaidas()])
   } catch (e) {
     console.error(e)
   }
 })
 
-// PDF
+/* ---------------------------
+   PDF
+   --------------------------- */
 function generatePDF() {
   const doc = new jsPDF({ orientation: 'landscape' })
   const columns = [
@@ -472,6 +507,9 @@ function generatePDF() {
 .ulEstoque {
   list-style: none;
   padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
 }
 .itemEntrada {
   background: #333;
@@ -479,7 +517,7 @@ function generatePDF() {
   border-radius: 6px;
   margin-bottom: 1rem;
   margin-right: 0.1vw;
-  width: 23.9vw;
+  width: 23vw;
 }
 .campo-grupo {
   color: #fff;
@@ -495,6 +533,7 @@ function generatePDF() {
   padding: 0.75rem;
   border-radius: 4px;
   position: relative;
+  width: 21.4vw;
 }
 .sub-item h5 {
   margin: 0.25rem 0;
@@ -508,13 +547,25 @@ function generatePDF() {
 .sub-item h5.destaque span {
   color: #00e676;
 }
-.btnEdit {
+.item-actions {
   position: absolute;
   top: 0.5rem;
   right: 0.5rem;
+  display: flex;
+  gap: 0.4rem;
+}
+.inputFormEstoque { padding:0.5rem; border:1px solid #ccc; border-radius:4px; }
+.btnEdit {
   background: transparent;
   border: none;
   color: #ffd54f;
+  font-size: 1.1rem;
+  cursor: pointer;
+}
+.btnDelete {
+  background: transparent;
+  border: none;
+  color: #ff6b6b;
   font-size: 1.1rem;
   cursor: pointer;
 }
@@ -532,7 +583,7 @@ function generatePDF() {
   padding: 1.5rem;
   border-radius: 6px;
   width: 90%;
-  max-width: 400px;
+  max-width: 520px;
 }
 .row {
   display: flex;
@@ -543,7 +594,7 @@ function generatePDF() {
   font-weight: bold;
   margin-bottom: 0.25rem;
 }
-.row input {
+.row input, .row select {
   padding: 0.5rem;
   border: 1px solid #ccc;
   border-radius: 4px;
@@ -567,7 +618,7 @@ function generatePDF() {
   border: none;
   border-radius: 4px;
 }
-.inputFormEstoque { padding:0.5rem; border:1px solid #ccc; border-radius:4px; }
+.select-search { padding:0.5rem; border:1px solid #ccc; border-radius:4px; }
 @media(max-width:768px){
   .itemEntrada, .sub-item {
     width: 100%;
